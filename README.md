@@ -1,6 +1,6 @@
 # KWGAN
 
-A GAN architecture to generate raw audio based on a dataset. This work is based on [https://github.com/chrisdonahue/wavegan](wavegan) and it is made using Tensorflow and Keras.
+A GAN architecture to generate raw audio based on a dataset. This work is based on [wavegan](https://github.com/chrisdonahue/wavegan) and it is made using Tensorflow and Keras.
 
 ## Usage
 
