@@ -230,6 +230,13 @@ def train_step(train_x,n_steps=4):
         generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
 
 #------------------------------------------------------------------------------
+# a pandas dataframe to save the loss information to
+#------------------------------------------------------------------------------
+
+losses = pd.DataFrame(columns = ['disc_loss', 'gen_loss'])
+
+
+#------------------------------------------------------------------------------
 # batch datasets
 #------------------------------------------------------------------------------
 
@@ -264,11 +271,6 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 
 z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 
-#------------------------------------------------------------------------------
-# a pandas dataframe to save the loss information to
-#------------------------------------------------------------------------------
-
-losses = pd.DataFrame(columns = ['disc_loss', 'gen_loss'])
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
