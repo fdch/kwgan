@@ -54,8 +54,8 @@ audio_prefix="kwg-" # audio filename prefix for audio export
 # initialize random seed
 #------------------------------------------------------------------------------
 
-np.random.seed(42)
-tf.random.set_seed(42)
+# np.random.seed(42)
+# tf.random.set_seed(42)
 
 #------------------------------------------------------------------------------
 # convert audio file to numpy array
