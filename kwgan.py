@@ -23,7 +23,7 @@ from tqdm.autonotebook import tqdm
 epochs_number          = 40001
 model_save_interval    = 1000
 audio_export_interval  = 400
-audio_export_per_epoch = 3
+audio_export_per_epoch = 5
 
 audio_samplerate       = 16000
 
@@ -47,8 +47,8 @@ dataset_path="sc09"
 model_train_path=node_path+"/"+dataset_path+"/train"
 model_test_path=node_path+"/"+dataset_path+"/test"
 model_save_path=node_path+"/"+code_path+"/saved_model"
-audio_save_path=node_path+"/"+code_path+"/audio"
-audio_prefix="aud-" # audio filename prefix for audio export
+audio_save_path=node_path+"/"+code_path+"/audio/train-10"
+audio_prefix="kwg-" # audio filename prefix for audio export
 
 #------------------------------------------------------------------------------
 # initialize random seed
@@ -169,6 +169,51 @@ def get_discriminator():
 
   model.summary()
   return model
+
+
+#------------------------------------------------------------------------------
+# set allow growth flag 
+# issue here https://github.com/tensorflow/tensorflow/issues/36025
+# and https://www.tensorflow.org/guide/gpu#limiting_gpu_memory_growth
+#------------------------------------------------------------------------------
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    # Currently, memory growth needs to be the same across GPUs
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Memory growth must be set before GPUs have been initialized
+    print(e)
+
+#------------------------------------------------------------------------------
+# check gpu
+#------------------------------------------------------------------------------
+
+
+print("tf.test.is_built_with_cuda():")
+print(tf.test.is_built_with_cuda())
+print("-----------------------")
+
+print("tf.config.experimental.get_device_policy():")
+print(tf.config.experimental.get_device_policy())
+print("-----------------------")
+testgpu=tf.test.is_gpu_available()
+print("tf.test.is_gpu_available():")
+print(testgpu)
+print("-----------------------")
+
+if not testgpu:
+  print("Sorry, I have to go now. Good bye.")
+  quit()
+
+
+#print("device_lib.list_local_devices():")
+#print(device_lib.list_local_devices())
+#print("-----------------------")
 
 #------------------------------------------------------------------------------
 # build models
@@ -325,3 +370,4 @@ time_to_train_gan = time.time()-start
 tf.print("Finished training.")
 
 tf.print ('Training time is {} sec,'.format( time_to_train_gan ))
+
