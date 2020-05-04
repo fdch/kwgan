@@ -191,16 +191,14 @@ print("tf.test.is_built_with_cuda():")
 print(tf.test.is_built_with_cuda())
 print("-----------------------")
 
-print("tf.config.experimental.get_device_policy():")
-print(tf.config.experimental.get_device_policy())
-print("-----------------------")
 testgpu=tf.test.is_gpu_available()
+
 print("tf.test.is_gpu_available():")
 print(testgpu)
 print("-----------------------")
 
 if not testgpu:
-  print("Sorry, I have to go now. Good bye.")
+  print("Sorry, I have to go now: cannot use GPU. Good bye.")
   quit()
 
 
