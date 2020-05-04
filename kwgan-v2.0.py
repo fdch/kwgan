@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np 
 import scipy.io.wavfile as wav
 from os import listdir
+from pathlib import Path
 from tensorflow import keras
 from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from tensorflow.keras.layers import BatchNormalization, Activation, LeakyReLU
@@ -33,21 +34,26 @@ DIMS       = (2**14,1)
 gen_learning_rate     = 0.0001
 disc_learning_rate    = 0.0001
 number_of_disc_layers = 22
-n_discriminator = 5 # Extra Number of times the discriminator is trained per generator train
-weight_clip = 0.05 # Weight clip parameter as in WGAN
+
+n_discriminator = 5 # Number of times discr. is trained per generator train
+weight_clip     = 0.05 # Weight clip parameter as in WGAN
 
 #------------------------------------------------------------------------------
 # paths and filenames
 #------------------------------------------------------------------------------
 
+job_suffix=10
+
 node_path="/users/PAS1309/fdch"
-code_path="keras-wavegan"
+code_path="kwgan"
 dataset_path="sc09"
 model_train_path=node_path+"/"+dataset_path+"/train"
 model_test_path=node_path+"/"+dataset_path+"/test"
 model_save_path=node_path+"/"+code_path+"/saved_model"
-audio_save_path=node_path+"/"+code_path+"/audio/train-10"
+audio_save_path=node_path+"/"+code_path+"/audio/train-"+job_suffix
 audio_prefix="kwg-" # audio filename prefix for audio export
+
+Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 
 #------------------------------------------------------------------------------
 # convert audio file to numpy array
