@@ -1,2 +1,7 @@
 *.wav
-logs/
+audio/*
+!audio/readme.txt
+saved_model/*
+!saved_model/readme.txt
+logs/*
+!logs/readme.txt
