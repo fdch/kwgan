@@ -42,7 +42,7 @@ weight_clip     = 0.05 # Weight clip parameter as in WGAN
 # paths and filenames
 #------------------------------------------------------------------------------
 
-job_suffix=10
+job_suffix=11
 
 node_path="/users/PAS1309/fdch"
 code_path="kwgan"
