@@ -244,7 +244,7 @@ def discriminator_loss(x_train,z):
 @tf.function
 def train_discriminator_step(train_x,z):
   with tf.GradientTape() as disc_tape:
-      disc_loss = discriminator_loss(x_train, z)
+      disc_loss = discriminator_loss(train_x, z)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
   for t in range(number_of_disc_layers):
@@ -256,7 +256,7 @@ def train_discriminator_step(train_x,z):
 def train_step(train_x,z):
   with tf.GradientTape() as disc_tape, tf.GradientTape() as gen_tape:  
     gen_loss = generator_loss(z)
-    disc_loss = discriminator_loss(x_train, z)
+    disc_loss = discriminator_loss(train_x, z)
   
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
