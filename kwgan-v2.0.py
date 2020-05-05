@@ -50,7 +50,7 @@ dataset_path="sc09"
 model_train_path=node_path+"/"+dataset_path+"/train"
 model_test_path=node_path+"/"+dataset_path+"/test"
 model_save_path=node_path+"/"+code_path+"/saved_model"
-audio_save_path=node_path+"/"+code_path+"/audio/train-"+job_suffix
+audio_save_path=node_path+"/"+code_path+"/audio/train-"+str(job_suffix)
 audio_prefix="kwg-" # audio filename prefix for audio export
 
 Path(audio_save_path).mkdir(parents=True, exist_ok=True)
