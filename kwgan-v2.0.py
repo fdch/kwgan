@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
-import time
+import time, sys
 import tensorflow as tf
 import numpy as np 
 import scipy.io.wavfile as wav
@@ -42,7 +42,7 @@ weight_clip     = 0.05 # Weight clip parameter as in WGAN
 # paths and filenames
 #------------------------------------------------------------------------------
 
-job_suffix=11
+job_suffix=sys.argv[1]
 
 node_path="/users/PAS1309/fdch"
 code_path="kwgan"
