@@ -38,6 +38,8 @@ number_of_disc_layers = 22
 n_discriminator = 5 # Number of times discr. is trained per generator train
 weight_clip     = 0.05 # Weight clip parameter as in WGAN
 
+quitOnCPU=0
+
 #------------------------------------------------------------------------------
 # paths and filenames
 #------------------------------------------------------------------------------
@@ -70,8 +72,8 @@ def audio_to_numpy(path):
       u=np.zeros((2**14,1))
       _, y= wav.read(path+"/"+i)
       u[:y.size,0]=y
-      a.append(u)
-      b.append(k)
+      np.append(a,u)
+      np.append(b,k)
     a = np.asarray(a,dtype='float32')
     b = np.asarray(b)
     a /= 32768.
@@ -210,8 +212,8 @@ print("tf.test.is_gpu_available():")
 print(testgpu)
 print("-----------------------")
 
-if not testgpu:
-  print("Sorry, I have to go now. Good bye.")
+if not testgpu and quitOnCPU:
+  print("Sorry, I have to go now: not using GPU. Good bye.")
   quit()
 
 
@@ -285,6 +287,7 @@ batch_dataset_start = time.time()
 
 x_train, y_train =audio_to_numpy(model_train_path)
 x_test, y_test =audio_to_numpy(model_test_path)
+
 
 train_dataset = (
     tf.data.Dataset.from_tensor_slices((x_train,y_train))
