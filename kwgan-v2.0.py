@@ -231,9 +231,9 @@ def generator_loss(z):
   return gen_loss
 
 @tf.function
-def discriminator_loss(x_train,z):
+def discriminator_loss(x,z):
   fake_output = discriminator(generator(z))
-  real_output = discriminator(x_train)
+  real_output = discriminator(x)
   dis_loss = tf.reduce_mean(real_output)-tf.reduce_mean(fake_output)
 
   return dis_loss
@@ -242,9 +242,9 @@ def discriminator_loss(x_train,z):
 # GAN training step
 #------------------------------------------------------------------------------
 @tf.function
-def train_discriminator_step(train_x,z):
+def train_discriminator_step(x,z):
   with tf.GradientTape() as disc_tape:
-      disc_loss = discriminator_loss(x_train, z)
+      disc_loss = discriminator_loss(x, z)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
   for t in range(number_of_disc_layers):
@@ -253,10 +253,10 @@ def train_discriminator_step(train_x,z):
 
 @tf.function
 # Taken away training more on discriminator that generator
-def train_step(train_x,z):
+def train_step(x,z):
   with tf.GradientTape() as disc_tape, tf.GradientTape() as gen_tape:  
     gen_loss = generator_loss(z)
-    disc_loss = discriminator_loss(x_train, z)
+    disc_loss = discriminator_loss(x, z)
   
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
