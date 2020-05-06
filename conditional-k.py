@@ -77,7 +77,7 @@ def audio_to_numpy(path):
     a = np.asarray(a,dtype='float32')
     b = np.asarray(b)
     a /= 32768.
-  return a, k
+  return a, b
 
 #------------------------------------------------------------------------------
 # sample audio routine
