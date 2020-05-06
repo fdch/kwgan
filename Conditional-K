@@ -60,23 +60,29 @@ Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 #------------------------------------------------------------------------------
 
 def audio_to_numpy(path):
-
+  numbers= ['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine']
+  allpaths=listdir(path)
+  path_by_number = [[i for i in allpaths if number in i] for number in numbers]
   a=[]
-  for i in listdir(path):
-    u=np.zeros((2**14,1))
-    _, y= wav.read(path+"/"+i)
-    u[:y.size,0]=y
-    a.append(u)
-  a = np.asarray(a,dtype='float32')
-  a /= 32768.
-  return a
+  b=[]
+  for k in range(10):
+    for i in path_by_number[k]:
+      u=np.zeros((2**14,1))
+      _, y= wav.read(path+"/"+i)
+      u[:y.size,0]=y
+      a.append(u)
+      b.append(k)
+    a = np.asarray(a,dtype='float32')
+    b = np.asarray(b)
+    a /= 32768.
+  return a, k
 
 #------------------------------------------------------------------------------
 # sample audio routine
 #------------------------------------------------------------------------------
 
-def sample_audio(e,z,gen):
-    g = gen.predict(z)
+def sample_audio(e,z,y,gen):
+    g = gen.predict([z,y])
     g *= 2**15
     for i in range(audio_export_per_epoch):
         f=audio_save_path+"/"+audio_prefix+str(e)+"-"+str(i)+".wav"
@@ -98,113 +104,114 @@ def save_model(m, n):
 # generator model
 #------------------------------------------------------------------------------
 
-def get_generator():
-  model = Sequential()
-  model.add(Dense(4*4*16*64, activation='relu', input_dim=LATENT_DIM))
-  model.add(Reshape((2**10,2**4)))
-  model.add(BatchNormalization(momentum=0.8))
-  # output (2**11, 2**4)
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**6, kernel_size=25,strides=4,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  # 
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**8, kernel_size=25,strides=4,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  # 
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**7, kernel_size=25,strides=1,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(UpSampling1D())
-  # 
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**6, kernel_size=25,strides=1,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(UpSampling1D())
-  #
-  model.add(UpSampling1D())
-  model.add(Conv1D(1, kernel_size=25,strides=1,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(UpSampling1D())
-  #
-  model.add(Activation("tanh"))
-  model.summary()
-  return model
+def upsample(filters, apply_dropout=False):
+  initializer = tf.random_normal_initializer(0., 0.02)
+  result = tf.keras.Sequential()
+  result.add(UpSampling1D())
+  result.add(tf.keras.layers.Conv1D(filters, kernel_size=25,strides=1,padding='same'))
+  result.add(tf.keras.layers.BatchNormalization())
 
+  if apply_dropout:
+    result.add(tf.keras.layers.Dropout(0.5))
+
+  result.add(tf.keras.layers.ReLU())
+
+  return result
+
+def define_generator():
+  initializer = tf.random_normal_initializer(0., 0.02)
+  # label input
+  label1 = Input(shape=(1,),name='label')
+  label2 = Dense(2**2)(label1)
+  label3 = Dense(2**4)(label2)
+  label4 = Dense(2**6)(label3)
+  label5 = Dense(2**7)(label4)
+  # Noise input
+  z = Input(shape=(LATENT_DIM,),name='noise')
+  # Concatenate
+  x=tf.keras.layers.Concatenate()([z, label5]) # (bs, 2^8)
+  x=Reshape((2**8,1))(x)
+  up_stack = [
+    upsample(2**10, apply_dropout=True), # (bs, 2^9, 2^10)
+    upsample(2**8, apply_dropout=True), # (bs, 2^10, 2^8)
+    upsample(2**6, apply_dropout=True), # (bs, 2^11, 2^6)
+    upsample(2**4), # (bs, 2^12, 2^4)
+    upsample(2**2), # (bs, 2^13, 2^2)
+    upsample(2**1), # (bs, 2^14, 2)
+  ]
+  
+  # Upsampling 
+  for up in up_stack:
+    x = up(x)
+  last = tf.keras.layers.Conv1D(1, kernel_size=25,strides=1,padding='same',kernel_initializer=initializer,activation='tanh')
+  x = last(x)
+
+  return tf.keras.Model([z,label1], outputs=x)
 #------------------------------------------------------------------------------
 # discriminator model
 #------------------------------------------------------------------------------
 
-def get_discriminator():
-  model = Sequential()
-  # 16234x1
-  model.add(Conv1D(2**6, kernel_size=25, strides=4, input_shape=DIMS, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 4096x64
-  model.add(Conv1D(2**7, kernel_size=25, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 1024x128
-  model.add(Conv1D(2**8, kernel_size=3, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 256x256
-  model.add(Conv1D(2**9, kernel_size=3, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 64x512
-  model.add(Conv1D(2**11, kernel_size=3, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 16x2048
-  model.add(Flatten())
-  model.add(Dense(1))
+def downsample(filters, apply_dropout=False):
+  initializer = tf.random_normal_initializer(0., 0.02)
+  result = tf.keras.Sequential()
+  result.add(tf.keras.layers.Conv1D(filters, kernel_size=25,strides=8,padding='same'))
+  result.add(tf.keras.layers.BatchNormalization())
 
-  model.summary()
-  return model
+  if apply_dropout:
+      result.add(tf.keras.layers.Dropout(0.5))
 
-#  I would say no longer necessary!
-# #------------------------------------------------------------------------------
-# # set allow growth flag 
-# # issue here https://github.com/tensorflow/tensorflow/issues/36025
-# # and https://www.tensorflow.org/guide/gpu#limiting_gpu_memory_growth
-# #------------------------------------------------------------------------------
+  result.add(tf.keras.layers.ReLU())
 
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# if gpus:
-#   try:
-#     # Currently, memory growth needs to be the same across GPUs
-#     for gpu in gpus:
-#       tf.config.experimental.set_memory_growth(gpu, True)
-#     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-#     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-#   except RuntimeError as e:
-#     # Memory growth must be set before GPUs have been initialized
-#     print(e)
+  return result
+
+def define_discriminator():
+  initializer = tf.random_normal_initializer(0., 0.02)
+  # Label input
+  label1 = Input(shape=(1,),name='Label')
+  label2 = Dense(2**4)(label1)
+  label3 = Dense(2**7)(label2)
+  label4 = Dense(2**9)(label3)
+  label5 = Dense(2**13)(label4)
+  # Sound input
+  x = Input(shape=(2**14,),name='Image')
+  # Concatenate
+  y=tf.keras.layers.Concatenate()([x, label5]) # (bs, 2^14, 2^14)
+  y=Reshape((2**14+2**13,1))(y) # (bs, 2^15,1)
+  
+  down_stack = [
+    downsample(2**9, apply_dropout=True), # (bs, 2^11, 2^9)
+    downsample(2**7, apply_dropout=True), # (bs, 2^8, 2^7)
+    downsample(2**5, apply_dropout=True), # (bs, 2^5, 2^5)
+    downsample(2**3), # (bs, 2^3, 2^3)
+    downsample(2**1), # (bs, 1, 2^1)
+  ]
+  
+  # Upsampling 
+  for down in down_stack:
+    y = down(y)
+  last = Dense(1)
+  y = last(y)
+
+  return tf.keras.Model([x,label1], outputs=y)
 
 #------------------------------------------------------------------------------
-# check gpu
+# GPU Test
 #------------------------------------------------------------------------------
-
 
 print("tf.test.is_built_with_cuda():")
 print(tf.test.is_built_with_cuda())
 print("-----------------------")
 
+print("tf.config.experimental.get_device_policy():")
+print(tf.config.experimental.get_device_policy())
+print("-----------------------")
 testgpu=tf.test.is_gpu_available()
-
 print("tf.test.is_gpu_available():")
 print(testgpu)
 print("-----------------------")
 
 if not testgpu:
-  print("Sorry, I have to go now: cannot use GPU. Good bye.")
+  print("Sorry, I have to go now. Good bye.")
   quit()
 
 
@@ -212,8 +219,10 @@ if not testgpu:
 # build models
 #------------------------------------------------------------------------------
 
-generator = get_generator()
-discriminator = get_discriminator()
+generator = define_generator()
+discriminator = define_discriminator()
+generator.summary()
+discriminator.summary()
 
 # We from RMSprop to Adam just to change it up a bit
 generator_optimizer = tf.keras.optimizers.Adam(gen_learning_rate)     
@@ -224,27 +233,27 @@ discriminator_optimizer = tf.keras.optimizers.Adam(disc_learning_rate)
 #------------------------------------------------------------------------------
 
 @tf.function
-def generator_loss(z):
-  fake_output = discriminator(generator(z))
+def generator_loss(z,label):
+  fake_output = discriminator([generator([z,label]),label])
   gen_loss = -tf.reduce_mean(fake_output)
 
   return gen_loss
 
 @tf.function
-def discriminator_loss(x,z):
-  fake_output = discriminator(generator(z))
-  real_output = discriminator(x)
+def discriminator_loss(x_train,z,label):
+  fake_output = discriminator([generator([z,label]),label])
+  real_output = discriminator([x_train,label])
   dis_loss = tf.reduce_mean(real_output)-tf.reduce_mean(fake_output)
 
   return dis_loss
 
 #------------------------------------------------------------------------------
-# GAN training step
+# GAN training steps
 #------------------------------------------------------------------------------
 @tf.function
-def train_discriminator_step(x,z):
+def train_discriminator_step(train_x,z,label):
   with tf.GradientTape() as disc_tape:
-      disc_loss = discriminator_loss(x, z)
+      disc_loss = discriminator_loss(train_x, z, label)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
   for t in range(number_of_disc_layers):
@@ -253,16 +262,18 @@ def train_discriminator_step(x,z):
 
 @tf.function
 # Taken away training more on discriminator that generator
-def train_step(x,z):
+def train_step(train_x,z,label):
   with tf.GradientTape() as disc_tape, tf.GradientTape() as gen_tape:  
-    gen_loss = generator_loss(z)
-    disc_loss = discriminator_loss(x, z)
+    gen_loss = generator_loss(z,label)
+    disc_loss = discriminator_loss(train_x, z, label)
+  
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   generator_optimizer.apply_gradients(zip(generator_gradients,generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
   
   return disc_loss, gen_loss
+
 
 #------------------------------------------------------------------------------
 # batch datasets
@@ -272,17 +283,17 @@ tf.print("Making datasets...")
 
 batch_dataset_start = time.time()
 
-x_train=audio_to_numpy(model_train_path)
-x_test=audio_to_numpy(model_test_path)
+x_train, y_train =audio_to_numpy(model_train_path)
+x_test, y_test =audio_to_numpy(model_test_path)
 
 train_dataset = (
-    tf.data.Dataset.from_tensor_slices(x_train)
+    tf.data.Dataset.from_tensor_slices((x_train,y_train))
     .shuffle(TRAIN_BUF)
     .batch(BATCH_SIZE)
 )
 
 test_dataset = (
-    tf.data.Dataset.from_tensor_slices(x_test)
+    tf.data.Dataset.from_tensor_slices((x_test,y_test))
     .shuffle(TEST_BUF)
     .batch(BATCH_SIZE)
 )
@@ -298,7 +309,7 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 #------------------------------------------------------------------------------
 
 z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
-
+y0 = 9*np.ones(audio_export_per_epoch)
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -314,27 +325,26 @@ def fit(train_dataset, epochs_number, test_dataset):
     start = time.time()
     # Train Loss
     loss=[]
-    for n, train_x in train_dataset.enumerate():
+    for n, (train_x, label) in train_dataset.enumerate():
       print('.', end='')
       #trainning the generator more times
       z=tf.random.normal([train_x.shape[0], LATENT_DIM])
       for k in range(n_discriminator):
-        train_discriminator_step(train_x,z)
+        train_discriminator_step(train_x, z, label)
       
-      disc_loss, gen_loss = train_step(train_x,z)
+      disc_loss, gen_loss = train_step(train_x,z,label)
       loss.append([disc_loss, gen_loss])
     tf.print(epoch,'Train Losses: ' , np.mean(loss,axis=0))
     # Test Loss
     loss=[]
-    for n, test_x in test_dataset.enumerate():
+    for n, (test_x,label) in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
-      loss.append([discriminator_loss(test_x,z),generator_loss(z)])
+      loss.append([discriminator_loss(test_x,z,label),generator_loss(z,label)])
     tf.print(epoch,'Test Losses: ' , np.mean(loss,axis=0))
-
     if epoch != 0:
       # sample audios at export interval (not 0)
       if epoch % audio_export_interval == 0:
-          sample_audio(epoch,z0,generator)
+          sample_audio(epoch,z0,y0,generator)
       # save the model at save interval (not 0)
       if epoch % model_save_interval  == 0:
           save_model(generator,     "KW_gen")
