@@ -60,7 +60,6 @@ Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 #------------------------------------------------------------------------------
 # convert audio file to numpy array
 #------------------------------------------------------------------------------
-
 def audio_to_numpy(path):
   numbers= ['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine']
   allpaths=listdir(path)
@@ -72,11 +71,11 @@ def audio_to_numpy(path):
       u=np.zeros((2**14,1))
       _, y= wav.read(path+"/"+i)
       u[:y.size,0]=y
-      np.append(a,u)
-      np.append(b,k)
-    a = np.asarray(a,dtype='float32')
-    b = np.asarray(b)
-    a /= 32768.
+      a.append(u)
+      b.append(k)
+  a = np.asarray(a,dtype='float32')
+  b = np.asarray(b)
+  a /= 32768.
   return a, b
 
 #------------------------------------------------------------------------------
