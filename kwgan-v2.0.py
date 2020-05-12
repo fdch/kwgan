@@ -9,7 +9,7 @@ from pathlib import Path
 from tensorflow import keras
 from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from tensorflow.keras.layers import BatchNormalization, Activation, LeakyReLU
-from tensorflow.keras.layers import UpSampling1D, Conv1D, UpSampling2D
+from tensorflow.keras.layers import UpSampling1D, Conv1D, UpSampling2D, Conv2DTranspose
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.optimizers import RMSprop
 
