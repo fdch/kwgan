@@ -307,6 +307,8 @@ tf.print("Finished makind datasets.")
 
 tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 
+quit()
+
 #------------------------------------------------------------------------------
 # z0 noise same latent vector 
 #------------------------------------------------------------------------------
