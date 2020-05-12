@@ -30,6 +30,9 @@ BATCH_SIZE = 256  # 32
 LATENT_DIM = 128
 DIMS       = (2**14,1)
 
+wgan_dim        = 64
+wgan_dim_mul    = 16
+wgan_kernel_len = 25
 
 gen_learning_rate     = 0.0001
 disc_learning_rate    = 0.0001
@@ -99,9 +102,9 @@ def save_model(m, n):
 #------------------------------------------------------------------------------
 
 def get_generator():
-  dim=64
-  dim_mul = 16
-  kernel_len=25
+  dim=wgan_dim
+  dim_mul=wgan_dim_mul
+  kernel_len=wgan_kernel_len
   # Noise input
   z = Input(shape=(LATENT_DIM,),name='noise')
   output = z
@@ -127,7 +130,7 @@ def get_generator():
   output = tf.nn.relu(output)
   output = Conv2DTranspose(1, (1,kernel_len), (1,4), padding='same')(output)
   output = tf.nn.tanh(output)
-  output = Reshape([2**14,1])(output)
+  output = Reshape(DIMS)(output)
 
   return tf.keras.Model(z, output)
 
@@ -136,10 +139,10 @@ def get_generator():
 #------------------------------------------------------------------------------
 
 def get_discriminator():
-  dim=64
-  kernel_len=25
+  dim=wgan_dim
+  kernel_len=wgan_kernel_len
   # Noise input
-  x = Input((2**14,1),name='audio')
+  x = Input((DIMS),name='audio')
   output = x
   # WaveGAN arquitecture
   output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
@@ -157,7 +160,7 @@ def get_discriminator():
   output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
-  output = Reshape([2**14])(output)
+  output = Reshape(DIMS[0])(output)
   output = Dense(1)(output)
 
   return tf.keras.Model(x, output)
