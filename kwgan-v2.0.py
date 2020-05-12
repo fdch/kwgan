@@ -30,6 +30,9 @@ BATCH_SIZE = 256  # 32
 LATENT_DIM = 128
 DIMS       = (2**14,1)
 
+wgan_dim        = 64
+wgan_dim_mul    = 16
+wgan_kernel_len = 25
 
 gen_learning_rate     = 0.0001
 disc_learning_rate    = 0.0001
@@ -99,75 +102,68 @@ def save_model(m, n):
 #------------------------------------------------------------------------------
 
 def get_generator():
-  model = Sequential()
-  model.add(Dense(4*4*16*64, activation='relu', input_dim=LATENT_DIM))
-  model.add(Reshape((2**10,2**4)))
-  model.add(BatchNormalization(momentum=0.8))
-  # output (2**11, 2**4)
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**6, kernel_size=25,strides=4,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  # 
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**8, kernel_size=25,strides=4,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  # 
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**7, kernel_size=25,strides=1,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(UpSampling1D())
-  # 
-  model.add(UpSampling1D())
-  model.add(Conv1D(2**6, kernel_size=25,strides=1,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(UpSampling1D())
-  #
-  model.add(UpSampling1D())
-  model.add(Conv1D(1, kernel_size=25,strides=1,activation="relu",padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(UpSampling1D())
-  #
-  model.add(Activation("tanh"))
-  model.summary()
-  return model
+  dim=wgan_dim
+  dim_mul=wgan_dim_mul
+  kernel_len=wgan_kernel_len
+  # Noise input
+  z = Input(shape=(LATENT_DIM,),name='noise')
+  output = z
+  # WaveGAN arquitecture
+  output = Dense(4*4*dim*dim_mul,activation='relu')(output)
+  output = Reshape([1,16, dim * dim_mul])(output)
+  # output = BatchNormalization()(output)
+  dim_mul //= 2
+  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+  # output = BatchNormalization()(output)
+  output = tf.nn.relu(output)
+  dim_mul //= 2
+  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+  # output = BatchNormalization()(output)
+  output = tf.nn.relu(output)
+  dim_mul //= 2
+  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+  # output = BatchNormalization()(output)
+  output = tf.nn.relu(output)
+  dim_mul //= 2
+  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+  # output = BatchNormalization()(output)
+  output = tf.nn.relu(output)
+  output = Conv2DTranspose(1, (1,kernel_len), (1,4), padding='same')(output)
+  output = tf.nn.tanh(output)
+  output = Reshape(DIMS)(output)
+
+  return tf.keras.Model(z, output)
 
 #------------------------------------------------------------------------------
 # discriminator model
 #------------------------------------------------------------------------------
 
 def get_discriminator():
-  model = Sequential()
-  # 16234x1
-  model.add(Conv1D(2**6, kernel_size=25, strides=4, input_shape=DIMS, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 4096x64
-  model.add(Conv1D(2**7, kernel_size=25, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 1024x128
-  model.add(Conv1D(2**8, kernel_size=3, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 256x256
-  model.add(Conv1D(2**9, kernel_size=3, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 64x512
-  model.add(Conv1D(2**11, kernel_size=3, strides=4, padding="same"))
-  model.add(BatchNormalization(momentum=0.8))
-  model.add(LeakyReLU(alpha=0.2))
-  model.add(Dropout(0.25))
-  # 16x2048
-  model.add(Flatten())
-  model.add(Dense(1))
+  dim=wgan_dim
+  kernel_len=wgan_kernel_len
+  # Noise input
+  x = Input((DIMS),name='audio')
+  output = x
+  # WaveGAN arquitecture
+  output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
+    # output = BatchNormalization()(output)
+  output = tf.nn.leaky_relu(output)
+  output = Conv1D(dim*2, kernel_len, 4, padding='SAME')(output)
+    # output = BatchNormalization()(output)
+  output = tf.nn.leaky_relu(output)
+  output = Conv1D(dim*4, kernel_len, 4, padding='SAME')(output)
+    # output = BatchNormalization()(output)
+  output = tf.nn.leaky_relu(output)
+  output = Conv1D(dim*8, kernel_len, 4, padding='SAME')(output)
+    # output = BatchNormalization()(output)
+  output = tf.nn.leaky_relu(output)
+  output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
+    # output = BatchNormalization()(output)
+  output = tf.nn.leaky_relu(output)
+  output = Reshape(DIMS[0])(output)
+  output = Dense(1)(output)
 
-  model.summary()
-  return model
+  return tf.keras.Model(x, output)
 
 #------------------------------------------------------------------------------
 # # set allow growth flag 
