@@ -160,7 +160,7 @@ def get_discriminator():
   output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
-  output = Reshape(DIMS[0])(output)
+  output = Reshape([DIMS[0]])(output)
   output = Dense(1)(output)
 
   return tf.keras.Model(x, output)
