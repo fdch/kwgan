@@ -36,7 +36,6 @@ wgan_kernel_len = 25
 
 gen_learning_rate     = 0.0001
 disc_learning_rate    = 0.0001
-number_of_disc_layers = 22
 
 n_discriminator = 5 # Number of times discr. is trained per generator train
 weight_clip     = 0.05 # Weight clip parameter as in WGAN
@@ -242,9 +241,9 @@ def train_discriminator_step(x,z):
       disc_loss = discriminator_loss(x, z)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
-  for t in range(number_of_disc_layers):
-      y = tf.clip_by_value(discriminator.trainable_weights[t],clip_value_min=-weight_clip,clip_value_max=weight_clip,name=None)
-      discriminator.trainable_weights[t].assign(y)
+  for layer in discriminator.trainable_weights[:]:
+      y = tf.clip_by_value(layer,clip_value_min=-weight_clip,clip_value_max=weight_clip,name=None)
+      layer.assign(y)
 
 @tf.function
 # Taken away training more on discriminator that generator
