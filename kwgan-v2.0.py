@@ -21,12 +21,13 @@ epochs_number          = 40001
 model_save_interval    = 1000
 audio_export_interval  = 400
 audio_export_per_epoch = 5
+print_loss_interval    = 100
 
 audio_samplerate       = 16000
 
-TRAIN_BUF  = 2048 # 128
-TEST_BUF   = 128  # 64
-BATCH_SIZE = 256  # 32
+TRAIN_BUF  = 128
+TEST_BUF   = 64
+BATCH_SIZE = 32
 LATENT_DIM = 128
 DIMS       = (2**14,1)
 
@@ -34,8 +35,8 @@ wgan_dim        = 64
 wgan_dim_mul    = 16
 wgan_kernel_len = 25
 
-gen_learning_rate     = 0.0001
-disc_learning_rate    = 0.0001
+gen_learning_rate     = 2e-4
+disc_learning_rate    = 2e-4
 
 n_discriminator = 5 # Number of times discr. is trained per generator train
 weight_clip     = 0.05 # Weight clip parameter as in WGAN
@@ -255,6 +256,9 @@ def train_step(x,z):
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   generator_optimizer.apply_gradients(zip(generator_gradients,generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
+  for layer in discriminator.trainable_weights[:]:
+      y = tf.clip_by_value(layer,clip_value_min=-weight_clip,clip_value_max=weight_clip,name=None)
+      layer.assign(y)
   
   return disc_loss, gen_loss
 
@@ -316,19 +320,29 @@ def fit(train_dataset, epochs_number, test_dataset):
         train_discriminator_step(train_x,z)
       
       disc_loss, gen_loss = train_step(train_x,z)
+    if epoch != 0:
+      # sample audios at export interval (not 0)
+      if epoch % print_loss_interval == 0:
       loss.append([disc_loss, gen_loss])
-    tf.print(epoch,'Train Losses: ' , np.mean(loss,axis=0))
+      tf.print(epoch,'Train Losses: ' , np.mean(loss,axis=0))
     # Test Loss
     loss=[]
     for n, test_x in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
       loss.append([discriminator_loss(test_x,z),generator_loss(z)])
-    tf.print(epoch,'Test Losses: ' , np.mean(loss,axis=0))
+
 
     if epoch != 0:
       # sample audios at export interval (not 0)
       if epoch % audio_export_interval == 0:
           sample_audio(epoch,z0,generator)
+              # Test Loss
+          loss=[]
+          for n, test_x in test_dataset.enumerate():
+            z=tf.random.normal([test_x.shape[0], LATENT_DIM])
+            loss.append([discriminator_loss(test_x,z),generator_loss(z)])
+            tf.print(epoch,'Test Losses: ' , np.mean(loss,axis=0))
+    tf.print(epoch,'Test Losses: ' , np.mean(loss,axis=0))
       # save the model at save interval (not 0)
       if epoch % model_save_interval  == 0:
           save_model(generator,     "KW_gen")
