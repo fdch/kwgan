@@ -221,7 +221,7 @@ discriminator_optimizer = tf.keras.optimizers.Adam(disc_learning_rate)
 @tf.function
 def generator_loss(z):
   fake_output = discriminator(generator(z))
-  gen_loss = -tf.reduce_mean(fake_output)
+  gen_loss = tf.reduce_mean(fake_output)
 
   return gen_loss
 
