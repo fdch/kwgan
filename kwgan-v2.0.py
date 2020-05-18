@@ -323,8 +323,8 @@ def fit(train_dataset, epochs_number, test_dataset):
     if epoch != 0:
       # sample audios at export interval (not 0)
       if epoch % print_loss_interval == 0:
-      loss.append([disc_loss, gen_loss])
-      tf.print(epoch,'Train Losses: ' , np.mean(loss,axis=0))
+        loss.append([disc_loss, gen_loss])
+        tf.print(epoch,'Train Losses: ' , np.mean(loss,axis=0))
     # Test Loss
     loss=[]
     for n, test_x in test_dataset.enumerate():
