@@ -316,6 +316,7 @@ def fit(train_dataset, epochs_number, test_dataset):
     start = time.time()
 
     losses=[]
+    losses.append(epoch)
     
     for n, train_x in train_dataset.enumerate():
       print('.', end='')      
@@ -338,8 +339,6 @@ def fit(train_dataset, epochs_number, test_dataset):
       if epoch % print_loss_interval == 0:
         losses.append(disc_loss)
         losses.append(gen_loss)
-
-    losses.prepend(epoch)
 
     tf.print("".join(str(losses).strip("[]")))
 
