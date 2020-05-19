@@ -307,48 +307,53 @@ z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 #------------------------------------------------------------------------------
 
 def fit(train_dataset, epochs_number, test_dataset):
+  
   tf.print("Begin training...")
+
+  tf.print("Tst_Dl,Tst_Gl,Trn_Dl,Trn_Gl")
+
   for epoch in range(epochs_number):
     start = time.time()
-    # Train Loss
-    loss=[]
+
+    losses=[]
+    
     for n, train_x in train_dataset.enumerate():
-      print('.', end='')
-      #trainning the generator more times
-      z=tf.random.normal([train_x.shape[0], LATENT_DIM])
+      print('.', end='')      
+      #  trainning the generator more times
+      z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       for k in range(n_discriminator):
-        train_discriminator_step(train_x,z)
-      
+        train_discriminator_step(train_x,z)            
       disc_loss, gen_loss = train_step(train_x,z)
-    if epoch != 0:
-      # sample audios at export interval (not 0)
-      if epoch % print_loss_interval == 0:
-        loss.append([disc_loss, gen_loss])
-        tf.print(epoch,'Train Losses: ' , np.mean(loss,axis=0))
+
     # Test Loss
-    loss=[]
     for n, test_x in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
-      loss.append([discriminator_loss(test_x,z),generator_loss(z)])
-
+      losses.append(discriminator_loss(test_x,z))
+      losses.append(generator_loss(z))
 
     if epoch != 0:
-      # sample audios at export interval (not 0)
+      # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
-          sample_audio(epoch,z0,generator)
-              # Test Loss
-          loss=[]
-          for n, test_x in test_dataset.enumerate():
-            z=tf.random.normal([test_x.shape[0], LATENT_DIM])
-            loss.append([discriminator_loss(test_x,z),generator_loss(z)])
-            tf.print(epoch,'Test Losses: ' , np.mean(loss,axis=0))
-    tf.print(epoch,'Test Losses: ' , np.mean(loss,axis=0))
-      # save the model at save interval (not 0)
-      if epoch % model_save_interval  == 0:
-          save_model(generator,     "KW_gen")
-          save_model(discriminator, "KW_dis")
+        sample_audio(epoch,z0,generator)
+      if epoch % print_loss_interval == 0:
+        losses.append(disc_loss)
+        losses.append(gen_loss)
+
+    losses.prepend(epoch)
+
+    tf.print("".join(str(losses).strip("[]")))
+
+    # save the model at save interval (not 0)
+    if epoch % model_save_interval  == 0:
+      save_model(generator,     "KW_gen")
+      save_model(discriminator, "KW_dis")
+    
     time_to_train_epoch = time.time()-start
+    
     tf.print (epoch, ': Training time {} sec,'.format( time_to_train_epoch ))
+  
   tf.print("Finished training.")
+
+
 
 fit(train_dataset, epochs_number, test_dataset)
