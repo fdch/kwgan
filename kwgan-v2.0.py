@@ -323,7 +323,7 @@ def fit(train_dataset, epochs_number, test_dataset):
         train_discriminator_step(train_x,z)
         
       disc_loss, gen_loss = train_step(train_x,z)
-      train_loss.append[disc_loss, gen_loss]
+      train_loss.append([disc_loss, gen_loss])
     
     # Test Loss
     test_loss=[]

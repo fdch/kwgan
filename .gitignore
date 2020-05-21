@@ -8,3 +8,4 @@ logs/*
 jobs/*
 !jobs/readme.txt
 *.pyc
+params/
