@@ -7,3 +7,4 @@ logs/*
 !logs/readme.txt
 jobs/*
 !jobs/readme.txt
+*.pyc
