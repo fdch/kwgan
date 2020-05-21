@@ -18,16 +18,15 @@ from tensorflow.keras.optimizers import RMSprop
 #------------------------------------------------------------------------------
 
 epochs_number          = 40001
-model_save_interval    = 1000
-audio_export_interval  = 400
+model_save_interval    = 100
+audio_export_interval  = 50
 audio_export_per_epoch = 5
-print_loss_interval    = 100
 
 audio_samplerate       = 16000
 
-TRAIN_BUF  = 128
-TEST_BUF   = 64
-BATCH_SIZE = 32
+TRAIN_BUF  = 512
+TEST_BUF   = 128
+BATCH_SIZE = 64
 LATENT_DIM = 128
 DIMS       = (2**14,1)
 
@@ -211,8 +210,8 @@ generator = get_generator()
 discriminator = get_discriminator()
 
 # We from RMSprop to Adam just to change it up a bit
-generator_optimizer = tf.keras.optimizers.Adam(gen_learning_rate)     
-discriminator_optimizer = tf.keras.optimizers.Adam(disc_learning_rate)
+generator_optimizer = RMSprop(gen_learning_rate)     
+discriminator_optimizer = RMSprop(disc_learning_rate)
 
 #------------------------------------------------------------------------------
 # loss functions
@@ -315,33 +314,31 @@ def fit(train_dataset, epochs_number, test_dataset):
   for epoch in range(epochs_number):
     start = time.time()
 
-    losses=[]
-    losses.append(epoch)
-    
+    train_loss=[]
     for n, train_x in train_dataset.enumerate():
       print('.', end='')      
       #  trainning the generator more times
       z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       for k in range(n_discriminator):
-        train_discriminator_step(train_x,z)            
+        train_discriminator_step(train_x,z)
+        
       disc_loss, gen_loss = train_step(train_x,z)
-
+      train_loss.append[disc_loss, gen_loss]
+    
     # Test Loss
+    test_loss=[]
     for n, test_x in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
-      losses.append(discriminator_loss(test_x,z))
-      losses.append(generator_loss(z))
-
+      
+      test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
+    
+    tf.print(epoch,np.mean(train_loss,axis=0),np.mean(test_loss,axis=0))
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
         sample_audio(epoch,z0,generator)
-      if epoch % print_loss_interval == 0:
-        losses.append(disc_loss)
-        losses.append(gen_loss)
 
-    tf.print("".join(str(losses).strip("[]")))
-
+    
     # save the model at save interval (not 0)
     if epoch % model_save_interval  == 0:
       save_model(generator,     "KW_gen")
