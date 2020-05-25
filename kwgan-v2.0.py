@@ -7,11 +7,11 @@ import scipy.io.wavfile as wav
 from os import listdir
 from pathlib import Path
 from tensorflow import keras
-from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout
+from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, Lambda
 from tensorflow.keras.layers import BatchNormalization, Activation, LeakyReLU
 from tensorflow.keras.layers import UpSampling1D, Conv1D, UpSampling2D, Conv2DTranspose
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.optimizers import RMSprop, Adam
 
 #------------------------------------------------------------------------------
 # Training, model save, and audio export variables
@@ -34,11 +34,7 @@ wgan_dim        = 64
 wgan_dim_mul    = 16
 wgan_kernel_len = 25
 
-gen_learning_rate     = 2e-4
-disc_learning_rate    = 2e-4
-
 n_discriminator = 5 # Number of times discr. is trained per generator train
-weight_clip     = 0.05 # Weight clip parameter as in WGAN
 
 #------------------------------------------------------------------------------
 # paths and filenames
@@ -137,6 +133,20 @@ def get_generator():
 # discriminator model
 #------------------------------------------------------------------------------
 
+def phaseshuffle(x, rad=2, pad_type='reflect'):
+  b, x_len, nch = x.get_shape().as_list()
+
+  phase = tf.random.uniform([], minval=-rad, maxval=rad + 1, dtype=tf.int32)
+  pad_l = tf.maximum(phase, 0)
+  pad_r = tf.maximum(-phase, 0)
+  phase_start = pad_r
+  x = tf.pad(x, [[0, 0], [pad_l, pad_r], [0, 0]], mode=pad_type)
+  x = x[:, phase_start:phase_start+x_len]
+  x.set_shape([b, x_len, nch])
+
+  return x
+
+# phaseshuffle = lambda x: apply_phaseshuffle(x)
 def get_discriminator():
   dim=wgan_dim
   kernel_len=wgan_kernel_len
@@ -145,12 +155,15 @@ def get_discriminator():
   output = x
   # WaveGAN arquitecture
   output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
+  output = phaseshuffle(output)
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*2, kernel_len, 4, padding='SAME')(output)
+  output = phaseshuffle(output)
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*4, kernel_len, 4, padding='SAME')(output)
+  output = phaseshuffle(output)
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*8, kernel_len, 4, padding='SAME')(output)
@@ -209,9 +222,9 @@ if not testgpu:
 generator = get_generator()
 discriminator = get_discriminator()
 
-# We from RMSprop to Adam just to change it up a bit
-generator_optimizer = RMSprop(gen_learning_rate)     
-discriminator_optimizer = RMSprop(disc_learning_rate)
+# Adam optimizer with parameters from WAVEGAN
+generator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)   
+discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 
 #------------------------------------------------------------------------------
 # loss functions
@@ -220,7 +233,7 @@ discriminator_optimizer = RMSprop(disc_learning_rate)
 @tf.function
 def generator_loss(z):
   fake_output = discriminator(generator(z))
-  gen_loss = tf.reduce_mean(fake_output)
+  gen_loss = -tf.reduce_mean(fake_output)
 
   return gen_loss
 
@@ -228,8 +241,16 @@ def generator_loss(z):
 def discriminator_loss(x,z):
   fake_output = discriminator(generator(z))
   real_output = discriminator(x)
-  dis_loss = tf.reduce_mean(real_output)-tf.reduce_mean(fake_output)
+  dis_loss = tf.reduce_mean(fake_output)-tf.reduce_mean(real_output)
 
+  epsilon = tf.random.uniform(shape=[x.shape[0], 1, 1], minval=0., maxval=1.)
+  x_hat = epsilon * x + (1 - epsilon) * generator(z)
+  d_hat = discriminator(x_hat)
+  ddx = tf.gradients(d_hat, x_hat)[0]
+  ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
+  ddx = tf.reduce_mean(tf.square(ddx - 1.0))
+  LAMBDA = 10
+  dis_loss += LAMBDA * ddx
   return dis_loss
 
 #------------------------------------------------------------------------------
@@ -241,9 +262,6 @@ def train_discriminator_step(x,z):
       disc_loss = discriminator_loss(x, z)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
-  for layer in discriminator.trainable_weights[:]:
-      y = tf.clip_by_value(layer,clip_value_min=-weight_clip,clip_value_max=weight_clip,name=None)
-      layer.assign(y)
 
 @tf.function
 # Taken away training more on discriminator that generator
@@ -255,9 +273,6 @@ def train_step(x,z):
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   generator_optimizer.apply_gradients(zip(generator_gradients,generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
-  for layer in discriminator.trainable_weights[:]:
-      y = tf.clip_by_value(layer,clip_value_min=-weight_clip,clip_value_max=weight_clip,name=None)
-      layer.assign(y)
   
   return disc_loss, gen_loss
 
@@ -309,14 +324,13 @@ def fit(train_dataset, epochs_number, test_dataset):
   
   tf.print("Begin training...")
 
-  tf.print("Tst_Dl,Tst_Gl,Trn_Dl,Trn_Gl")
+  tf.print("Epoch:  Tst_Dl . . ,Tst_Gl . . ,Trn_Dl . . ,Trn_Gl")
 
   for epoch in range(epochs_number):
     start = time.time()
 
     train_loss=[]
-    for n, train_x in train_dataset.enumerate():
-      print('.', end='')      
+    for n, train_x in train_dataset.enumerate():     
       #  trainning the generator more times
       z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       for k in range(n_discriminator):
@@ -331,8 +345,9 @@ def fit(train_dataset, epochs_number, test_dataset):
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
       
       test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
-    
-    tf.print(epoch,np.mean(train_loss,axis=0),np.mean(test_loss,axis=0))
+    tr_loss= np.asarray(np.mean(train_loss,axis=0))
+    te_loss=np.asarray(np.mean(test_loss,axis=0))
+    tf.print(epoch,':',tr_loss[0],tr_loss[1],te_loss[0],te_loss[1])
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
@@ -353,3 +368,4 @@ def fit(train_dataset, epochs_number, test_dataset):
 
 
 fit(train_dataset, epochs_number, test_dataset)
+
