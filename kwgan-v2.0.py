@@ -19,7 +19,7 @@ from tensorflow.keras.optimizers import RMSprop, Adam
 
 epochs_number          = 40001
 model_save_interval    = 100
-audio_export_interval  = 50
+audio_export_interval  = 25
 audio_export_per_epoch = 5
 
 audio_samplerate       = 16000
@@ -324,7 +324,7 @@ def fit(train_dataset, epochs_number, test_dataset):
   
   tf.print("Begin training...")
 
-  tf.print("Epoch:  Tst_Dl . . ,Tst_Gl . . ,Trn_Dl . . ,Trn_Gl")
+  tf.print("Epoch:  Tst_Dl . . ,Tst_Gl . . ,Trn_Dl . . ,Trn_Gl . . , Time")
 
   for epoch in range(epochs_number):
     start = time.time()
@@ -347,13 +347,11 @@ def fit(train_dataset, epochs_number, test_dataset):
       test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
     tr_loss= np.asarray(np.mean(train_loss,axis=0))
     te_loss=np.asarray(np.mean(test_loss,axis=0))
-    tf.print(epoch,':',tr_loss[0],tr_loss[1],te_loss[0],te_loss[1])
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
         sample_audio(epoch,z0,generator)
 
-    
     # save the model at save interval (not 0)
     if epoch % model_save_interval  == 0:
       save_model(generator,     "KW_gen")
@@ -361,7 +359,7 @@ def fit(train_dataset, epochs_number, test_dataset):
     
     time_to_train_epoch = time.time()-start
     
-    tf.print (epoch, ': Training time {} sec,'.format( time_to_train_epoch ))
+    tf.print(epoch,':',tr_loss[0],tr_loss[1],te_loss[0],te_loss[1],time_to_train_epoch)
   
   tf.print("Finished training.")
 
