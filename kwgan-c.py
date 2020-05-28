@@ -120,41 +120,8 @@ def save_model(m, n):
 
 
 #------------------------------------------------------------------------------
-# up/downsampling
-#------------------------------------------------------------------------------
-
-def upsample(filters, apply_dropout=False):
-  initializer = tf.random_normal_initializer(0., 0.02)
-  result = tf.keras.Sequential()
-  result.add(UpSampling1D())
-  result.add(tf.keras.layers.Conv1D(filters, kernel_size=25,strides=1,padding='same'))
-  result.add(tf.keras.layers.BatchNormalization())
-
-  if apply_dropout:
-    result.add(tf.keras.layers.Dropout(0.5))
-
-  result.add(tf.keras.layers.ReLU())
-
-  return result
-
-def downsample(filters, apply_dropout=False):
-  initializer = tf.random_normal_initializer(0., 0.02)
-  result = tf.keras.Sequential()
-  result.add(tf.keras.layers.Conv1D(filters, kernel_size=25,strides=8,padding='same'))
-  result.add(tf.keras.layers.BatchNormalization())
-
-  if apply_dropout:
-      result.add(tf.keras.layers.Dropout(0.5))
-
-  result.add(tf.keras.layers.ReLU())
-
-  return result
-
-#------------------------------------------------------------------------------
 # phase shuffling
 #------------------------------------------------------------------------------
-
-# phaseshuffle = lambda x: apply_phaseshuffle(x)
 
 def phaseshuffle(x, rad=2, pad_type='reflect'):
   b, x_len, nch = x.get_shape().as_list()
@@ -173,48 +140,23 @@ def phaseshuffle(x, rad=2, pad_type='reflect'):
 # generator model
 #------------------------------------------------------------------------------
 
-# <<<<<<<< from old conditional
-
-# def define_generator():
-#   initializer = tf.random_normal_initializer(0., 0.02)
-#   # label input
-#   label1 = Input(shape=(1,),name='label')
-#   label2 = Dense(2**2)(label1)
-#   label3 = Dense(2**4)(label2)
-#   label4 = Dense(2**6)(label3)
-#   label5 = Dense(2**7)(label4)
-#   # Noise input
-#   z = Input(shape=(LATENT_DIM,),name='noise')
-#   # Concatenate
-#   x=tf.keras.layers.Concatenate()([z, label5]) # (bs, 2^8)
-#   x=Reshape((2**8,1))(x)
-#   up_stack = [
-#     upsample(2**10, apply_dropout=True), # (bs, 2^9, 2^10)
-#     upsample(2**8, apply_dropout=True), # (bs, 2^10, 2^8)
-#     upsample(2**6, apply_dropout=True), # (bs, 2^11, 2^6)
-#     upsample(2**4), # (bs, 2^12, 2^4)
-#     upsample(2**2), # (bs, 2^13, 2^2)
-#     upsample(2**1), # (bs, 2^14, 2)
-#   ]
-  
-#   # Upsampling 
-#   for up in up_stack:
-#     x = up(x)
-#   last = tf.keras.layers.Conv1D(1, kernel_size=25,strides=1,padding='same',kernel_initializer=initializer,activation='tanh')
-#   x = last(x)
-
-#   return tf.keras.Model([z,label1], outputs=x)
-
 
 def get_generator():
+  # label input
+  label1 = Input(shape=(1,),name='label')
+  label2 = Dense(2**2)(label1)
+  label3 = Dense(2**4)(label2)
+  label4 = Dense(2**6)(label3)
+  label5 = Dense(2**7)(label4)
+  # Parameters from WAVEGAN
   dim=wgan_dim
   dim_mul=wgan_dim_mul
   kernel_len=wgan_kernel_len
   # Noise input
   z = Input(shape=(LATENT_DIM,),name='noise')
-  output = z
+  output=tf.stack([z, label5], axis=1)
   # WaveGAN arquitecture
-  output = Dense(4*4*dim*dim_mul,activation='relu')(output)
+  output = Dense(2*4*dim*dim_mul,activation='relu')(output)
   output = Reshape([1,16, dim * dim_mul])(output)
   # output = BatchNormalization()(output)
   dim_mul //= 2
@@ -237,7 +179,7 @@ def get_generator():
   output = tf.nn.tanh(output)
   output = Reshape(DIMS)(output)
 
-  return tf.keras.Model(z, output)
+  return tf.keras.Model([z,label1], output)
 # ================
 
 #------------------------------------------------------------------------------
@@ -246,40 +188,17 @@ def get_generator():
 
 
 
-# <<<<<<<<<<<<<< from old conditional
-# 
-# def define_discriminator():
-#   initializer = tf.random_normal_initializer(0., 0.02)
-#   # Label input
-#   label1 = Input(shape=(1,),name='Label')
-#   label2 = Dense(2**4)(label1)
-#   label3 = Dense(2**7)(label2)
-#   label4 = Dense(2**9)(label3)
-#   label5 = Dense(2**13)(label4)
-#   # Sound input
-#   x = Input(shape=(2**14,),name='Image')
-#   # Concatenate
-#   y=tf.keras.layers.Concatenate()([x, label5]) # (bs, 2^14, 2^14)
-#   y=Reshape((2**14+2**13,1))(y) # (bs, 2^15,1)
-  
-#   down_stack = [
-#     downsample(2**9, apply_dropout=True), # (bs, 2^11, 2^9)
-#     downsample(2**7, apply_dropout=True), # (bs, 2^8, 2^7)
-#     downsample(2**5, apply_dropout=True), # (bs, 2^5, 2^5)
-#     downsample(2**3), # (bs, 2^3, 2^3)
-#     downsample(2**1), # (bs, 1, 2^1)
-#   ]
-  
-#   # Upsampling 
-#   for down in down_stack:
-#     y = down(y)
-#   last = Dense(1)
-#   y = last(y)
-
-#   return tf.keras.Model([x,label1], outputs=y)
-
-
 def get_discriminator():
+  # Label input
+  label1 = Input(shape=(1,),name='Label')
+  label2 = Dense(2**4)(label1)
+  label3 = Dense(2**7)(label2)
+  label4 = Dense(2**9)(label3)
+  label5 = Dense(2**14)(label4)
+  # Sound input
+  x = Input(shape=(2**14,),name='Image')
+  # Concatenate
+  y=tf.keras.layers.Concatenate()([x, label5]) # (bs, 2^14, 2^14)
   dim=wgan_dim
   kernel_len=wgan_kernel_len
   # Noise input
@@ -305,9 +224,11 @@ def get_discriminator():
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Reshape([DIMS[0]])(output)
+  output = tf.stack([output,label5], axis=1)
+  output = Reshape([2*DIMS[0]])(output)
   output = Dense(1)(output)
 
-  return tf.keras.Model(x, output)
+  return tf.keras.Model([x,label1], output)
 # ================
 
 
@@ -363,24 +284,22 @@ discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 #------------------------------------------------------------------------------
 
 @tf.function
-def generator_loss(z):
-  # <<<<<<< old conditional
-  # fake_output = discriminator([generator([z,label]),label])
-  fake_output = discriminator(generator(z))
+def generator_loss(z,label):
+  fake_output = discriminator([generator([z,label]),label])
   # ============
   gen_loss = -tf.reduce_mean(fake_output)
 
   return gen_loss
 
 @tf.function
-def discriminator_loss(x,z):
-  fake_output = discriminator(generator(z))
-  real_output = discriminator(x)
+def discriminator_loss(x,z,label):
+  fake_output = discriminator([generator([z,label]),label])
+  real_output = discriminator([x,label])
   dis_loss = tf.reduce_mean(fake_output)-tf.reduce_mean(real_output)
 
   epsilon = tf.random.uniform(shape=[x.shape[0], 1, 1], minval=0., maxval=1.)
-  x_hat = epsilon * x + (1 - epsilon) * generator(z)
-  d_hat = discriminator(x_hat)
+  x_hat = epsilon * x + (1 - epsilon) * generator([z,label])
+  d_hat = discriminator([x_hat,label])
   ddx = tf.gradients(d_hat, x_hat)[0]
   ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
   ddx = tf.reduce_mean(tf.square(ddx - 1.0))
@@ -392,29 +311,20 @@ def discriminator_loss(x,z):
 # GAN training step
 #------------------------------------------------------------------------------
 @tf.function
-# <<<<<<< old conditional
-# def train_discriminator_step(train_x,z,label):
-def train_discriminator_step(x,z):
+def train_discriminator_step(x,z,label):
 # =======
   with tf.GradientTape() as disc_tape:
-  # <<<<<<< old conditional
-      # disc_loss = discriminator_loss(train_x, z, label)
-      disc_loss = discriminator_loss(x, z)
+      disc_loss = discriminator_loss(train_x, z, label)
   # ============
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
 
 @tf.function
-# <<<<<<< old conditional
-# def train_discriminator_step(train_x,z,label):
-def train_step(x,z):
+def train_step(x,z,label):
 # =======
   with tf.GradientTape() as disc_tape, tf.GradientTape() as gen_tape:  
-# <<<<<<< old conditional
-    # gen_loss = generator_loss(z,label)
-    # disc_loss = discriminator_loss(train_x, z, label)
-    gen_loss = generator_loss(z)
-    disc_loss = discriminator_loss(x, z)
+    gen_loss = generator_loss(z,label)
+    disc_loss = discriminator_loss(train_x, z, label)
 # =======
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
@@ -430,29 +340,20 @@ def train_step(x,z):
 tf.print("Making datasets...")
 
 batch_dataset_start = time.time()
-# <<<<<<< old conditional
 
-# x_train, y_train =indexed_audio_to_numpy(model_train_path)
-# x_test, y_test =indexed_audio_to_numpy(model_test_path)
+x_train, y_train =indexed_audio_to_numpy(model_train_path)
+x_test, y_test =indexed_audio_to_numpy(model_test_path)
 
-x_train=audio_to_numpy(model_train_path)
-x_test=audio_to_numpy(model_test_path)
-# =======
+=======
 
 train_dataset = (
-# <<<<<<< old conditional
-    # tf.data.Dataset.from_tensor_slices((x_train,y_train))
-    tf.data.Dataset.from_tensor_slices(x_train)
-# =======
+    tf.data.Dataset.from_tensor_slices((x_train,y_train))
     .shuffle(TRAIN_BUF)
     .batch(BATCH_SIZE)
 )
 
 test_dataset = (
-# <<<<<<< old conditional
-    # tf.data.Dataset.from_tensor_slices((x_test,y_test))
-    tf.data.Dataset.from_tensor_slices(x_test)
-# =======
+    tf.data.Dataset.from_tensor_slices((x_test,y_test))
     .shuffle(TEST_BUF)
     .batch(BATCH_SIZE)
 )
@@ -489,27 +390,23 @@ def fit(train_dataset, epochs_number, test_dataset):
     start = time.time()
 
     train_loss=[]
-    for n, train_x in train_dataset.enumerate():     
+    for n, (train_x, train_label) in train_dataset.enumerate():     
       #  trainning the generator more times
       z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       for k in range(n_discriminator):
-# <<<<<<< old conditional
-        # train_discriminator_step(train_x, z, label)
-        train_discriminator_step(train_x,z)
-        
-      # disc_loss, gen_loss = train_step(train_x,z,label)
-      disc_loss, gen_loss = train_step(train_x,z)
-# =======
+        train_discriminator_step(train_x, z, train_label)
+
+      disc_loss, gen_loss = train_step(train_x,z,train_label)
+
       train_loss.append([disc_loss, gen_loss])
     
     # Test Loss
     test_loss=[]
-    for n, test_x in test_dataset.enumerate():
+    for n, (test_x, test_label) in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
-# <<<<<<< old conditional
+
       
-      # loss.append([discriminator_loss(test_x,z,label),generator_loss(z,label)])
-      test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
+      test_loss.append([discriminator_loss(test_x,z,test_label),generator_loss(z,test_label)])
 # =======
     tr_loss= np.asarray(np.mean(train_loss,axis=0))
     te_loss=np.asarray(np.mean(test_loss,axis=0))
