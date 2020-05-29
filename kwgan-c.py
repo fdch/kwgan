@@ -180,7 +180,7 @@ def get_generator():
   output = Reshape(DIMS)(output)
 
   return tf.keras.Model([z,label1], output)
-# ================
+
 
 #------------------------------------------------------------------------------
 # discriminator model
@@ -229,7 +229,7 @@ def get_discriminator():
   output = Dense(1)(output)
 
   return tf.keras.Model([x,label1], output)
-# ================
+
 
 
 #------------------------------------------------------------------------------
@@ -286,7 +286,7 @@ discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 @tf.function
 def generator_loss(z,label):
   fake_output = discriminator([generator([z,label]),label])
-  # ============
+
   gen_loss = -tf.reduce_mean(fake_output)
 
   return gen_loss
@@ -312,20 +312,20 @@ def discriminator_loss(x,z,label):
 #------------------------------------------------------------------------------
 @tf.function
 def train_discriminator_step(x,z,label):
-# =======
+
   with tf.GradientTape() as disc_tape:
       disc_loss = discriminator_loss(train_x, z, label)
-  # ============
+
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
 
 @tf.function
 def train_step(x,z,label):
-# =======
+
   with tf.GradientTape() as disc_tape, tf.GradientTape() as gen_tape:  
     gen_loss = generator_loss(z,label)
     disc_loss = discriminator_loss(train_x, z, label)
-# =======
+
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
   discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   generator_optimizer.apply_gradients(zip(generator_gradients,generator.trainable_variables))
@@ -344,7 +344,7 @@ batch_dataset_start = time.time()
 x_train, y_train =indexed_audio_to_numpy(model_train_path)
 x_test, y_test =indexed_audio_to_numpy(model_test_path)
 
-=======
+
 
 train_dataset = (
     tf.data.Dataset.from_tensor_slices((x_train,y_train))
@@ -407,7 +407,7 @@ def fit(train_dataset, epochs_number, test_dataset):
 
       
       test_loss.append([discriminator_loss(test_x,z,test_label),generator_loss(z,test_label)])
-# =======
+
     tr_loss= np.asarray(np.mean(train_loss,axis=0))
     te_loss=np.asarray(np.mean(test_loss,axis=0))
     if epoch != 0:
