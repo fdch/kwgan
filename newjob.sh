@@ -58,18 +58,19 @@ function printPBS() {
 
 # SET CLUSTER PATH NAME
 name=PAS1309
-
-printPBS "-l" "walltime=${walltime}"
-printPBS "-l" "nodes=${nodes}:ppn=${ppn}:gpus=${gpus}:default"
-printPBS "-A" "${name} "
-printPBS "-N" "${job_output}"
-printPBS "-m" "${recalls}"
-printPBS "-S" "${env}"
-printPBS "-e" "${job_logs}/${job_name}-e.txt"
-printPBS "-o" "${job_logs}/${job_name}-o.txt"
-printf "=%.0s" {1..80}
-echo
-echo "# job created on" $(date)
-printf "%s %s\n"    "source" "${venv}"
-printf "%s %s %s\n" "module" "load" "${cuda}"
-printf "%s %s %s\n" "python" "${script_path}" "$job_prefix"
+j="${job_path}/${job_name}.sh"
+printPBS "-l" "walltime=${walltime}" > $j
+printPBS "-l" "nodes=${nodes}:ppn=${ppn}:gpus=${gpus}:default" >> $j
+printPBS "-A" "${name} " >> $j
+printPBS "-N" "${job_output}" >> $j
+printPBS "-m" "${recalls}" >> $j
+printPBS "-S" "${env}" >> $j
+printPBS "-e" "${job_logs}/${job_name}-e.txt" >> $j
+printPBS "-o" "${job_logs}/${job_name}-o.txt" >> $j
+printf "=%.0s" {1..80} >> $j
+echo >> $j
+echo "# job created on" $(date) >> $j
+printf "%s %s\n"    "source" "${venv}" >> $j
+printf "%s %s %s\n" "module" "load" "${cuda}" >> $j
+printf "%s %s %s\n" "python" "${script_path}" "$job_prefix" >> $j
+echo "Finished making job: $j"
