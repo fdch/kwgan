@@ -73,8 +73,9 @@ def indexed_audio_to_numpy(path):
       b.append(k)
   a = np.asarray(a,dtype='float32')
   b = np.asarray(b)
+  c = np.expand_dims(b,axis=1)
   a /= 32768.
-  return a, b
+  return a, c
 
 #------------------------------------------------------------------------------
 # convert audio file to numpy array
