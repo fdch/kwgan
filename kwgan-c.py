@@ -371,6 +371,7 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 
 z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 y0 = 9*np.ones(audio_export_per_epoch)
+y0 = np.expand_dims(y0,axis=1)
 
 
 #------------------------------------------------------------------------------
@@ -411,12 +412,10 @@ def fit(train_dataset, epochs_number, test_dataset):
 
     tr_loss= np.asarray(np.mean(train_loss,axis=0))
     te_loss=np.asarray(np.mean(test_loss,axis=0))
-    if epoch != 0:
-      # sample audio at export interval (not 0)
-      if epoch % audio_export_interval == 0:
-        sample_audio(epoch,z0,generator,y0)
 
-    # save the model at save interval (not 0)
+    if epoch % audio_export_interval == 0:
+      sample_audio(epoch,z0,generator,y0)
+
     if epoch % model_save_interval  == 0:
       save_model(generator,     "c-KW_gen-"+job_suffix)
       save_model(discriminator, "c-KW_dis-"+job_suffix)
