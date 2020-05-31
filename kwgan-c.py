@@ -99,7 +99,7 @@ def audio_to_numpy(path):
 
 def sample_audio(e,z,gen,*y):
     if y:
-      g = gen.predict([z,y])
+      g = gen.predict([z,np.squeeze(y)])
     else:
       g = gen.predict(z)
     g *= 2**15
