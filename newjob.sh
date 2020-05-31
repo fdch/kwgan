@@ -67,6 +67,7 @@ printPBS "-m" "${recalls}" >> $j
 printPBS "-S" "${env}" >> $j
 printPBS "-e" "${job_logs}/${job_name}-e.txt" >> $j
 printPBS "-o" "${job_logs}/${job_name}-o.txt" >> $j
+printf "#" >> $j
 printf "=%.0s" {1..80} >> $j
 echo >> $j
 echo "# job created on" $(date) >> $j
