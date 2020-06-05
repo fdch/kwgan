@@ -329,24 +329,31 @@ def fit(train_dataset, epochs_number, test_dataset):
   for epoch in range(epochs_number):
     start = time.time()
 
+    
     train_loss=[]
-    for n, train_x in train_dataset.enumerate():     
-      #  trainning the generator more times
-      z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
-      for k in range(n_discriminator):
+    
+    # trainning the discriminator more times
+    for k in range(n_discriminator):
+      for n, train_x in train_dataset.enumerate():     
+        z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
         train_discriminator_step(train_x,z)
-        
+          
+    # train generator
+    for n,train_x in train_dataset.enumerate():
+      z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       disc_loss, gen_loss = train_step(train_x,z)
       train_loss.append([disc_loss, gen_loss])
-    
+
     # Test Loss
     test_loss=[]
     for n, test_x in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
       
       test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
+    
     tr_loss= np.asarray(np.mean(train_loss,axis=0))
     te_loss=np.asarray(np.mean(test_loss,axis=0))
+    
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:

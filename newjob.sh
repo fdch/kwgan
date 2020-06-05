@@ -6,8 +6,14 @@
 #
 # =============================================================================
 
-# PYTHON SCRIPT FILENAME GOES HERE
-script=kwgan-c.py
+# PYTHON SCRIPT FILENAME GOES IN ARGUMENT 1
+if [[ $1 ]]
+then
+	script=$1
+else
+	echo "Add input script. Exiting."
+	exit
+fi
 
 # SET WALL TIME 
 walltime=24:00:00
