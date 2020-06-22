@@ -130,7 +130,7 @@ def get_generator():
   return tf.keras.Model(z, output)
 
 #------------------------------------------------------------------------------
-# discriminator model
+# phaseshuffle = lambda x: apply_phaseshuffle(x)
 #------------------------------------------------------------------------------
 
 def phaseshuffle(x, rad=2, pad_type='reflect'):
@@ -146,7 +146,10 @@ def phaseshuffle(x, rad=2, pad_type='reflect'):
 
   return x
 
-# phaseshuffle = lambda x: apply_phaseshuffle(x)
+#------------------------------------------------------------------------------
+# discriminator model
+#------------------------------------------------------------------------------
+
 def get_discriminator():
   dim=wgan_dim
   kernel_len=wgan_kernel_len
@@ -198,22 +201,13 @@ if gpus:
 #------------------------------------------------------------------------------
 # check gpu
 #------------------------------------------------------------------------------
-
-
-print("tf.test.is_built_with_cuda():")
-print(tf.test.is_built_with_cuda())
-print("-----------------------")
-
-testgpu=tf.test.is_gpu_available()
-
-print("tf.test.is_gpu_available():")
-print(testgpu)
-print("-----------------------")
-
-if not testgpu:
+# print("tf.test.is_built_with_cuda():")
+# print(tf.test.is_built_with_cuda())
+# print("tf.test.is_gpu_available():")
+# print(testgpu)
+if not tf.test.is_gpu_available():
   print("Sorry, I have to go now: cannot use GPU. Good bye.")
   quit()
-
 
 #------------------------------------------------------------------------------
 # build models
@@ -251,6 +245,7 @@ def discriminator_loss(x,z):
   ddx = tf.reduce_mean(tf.square(ddx - 1.0))
   LAMBDA = 10
   dis_loss += LAMBDA * ddx
+
   return dis_loss
 
 #------------------------------------------------------------------------------
@@ -309,7 +304,7 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 # z0 noise same latent vector 
 #------------------------------------------------------------------------------
 
-z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
+z = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 
 
 #------------------------------------------------------------------------------
@@ -322,9 +317,9 @@ z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 
 def fit(train_dataset, epochs_number, test_dataset):
   
-  tf.print("Begin training...")
+  tf.print("begin")
 
-  tf.print("Epoch:  Tst_Dl . . ,Tst_Gl . . ,Trn_Dl . . ,Trn_Gl . . , Time")
+  tf.print("Epoch,Tst_Dl, Tst_Gl, Trn_Dl,Trn_Gl,Time")
 
   for epoch in range(epochs_number):
     start = time.time()
@@ -335,19 +330,19 @@ def fit(train_dataset, epochs_number, test_dataset):
     # trainning the discriminator more times
     for k in range(n_discriminator):
       for n, train_x in train_dataset.enumerate():     
-        z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
+        # z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
         train_discriminator_step(train_x,z)
           
     # train generator
     for n,train_x in train_dataset.enumerate():
-      z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
+      # z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       disc_loss, gen_loss = train_step(train_x,z)
       train_loss.append([disc_loss, gen_loss])
 
     # Test Loss
     test_loss=[]
     for n, test_x in test_dataset.enumerate():
-      z=tf.random.normal([test_x.shape[0], LATENT_DIM])
+      # z=tf.random.normal([test_x.shape[0], LATENT_DIM])
       
       test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
     
@@ -357,7 +352,7 @@ def fit(train_dataset, epochs_number, test_dataset):
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
-        sample_audio(epoch,z0,generator)
+        sample_audio(epoch,z,generator)
 
     # save the model at save interval (not 0)
     if epoch % model_save_interval  == 0:
@@ -366,9 +361,9 @@ def fit(train_dataset, epochs_number, test_dataset):
     
     time_to_train_epoch = time.time()-start
     
-    tf.print(epoch,':',tr_loss[0],tr_loss[1],te_loss[0],te_loss[1],time_to_train_epoch)
+    tf.print(epoch,tr_loss[0],tr_loss[1],te_loss[0],te_loss[1],time_to_train_epoch)
   
-  tf.print("Finished training.")
+  tf.print("end")
 
 
 
