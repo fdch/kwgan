@@ -305,7 +305,7 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 #------------------------------------------------------------------------------
 
 z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
-z  = tf.random.normal([0, 1, LATENT_DIM])
+z  = tf.random.normal([DIMS, LATENT_DIM])
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
