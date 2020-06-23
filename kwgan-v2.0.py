@@ -304,8 +304,8 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 # z0 noise same latent vector 
 #------------------------------------------------------------------------------
 
-z = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
-
+z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
+z =tf.random.normal([test_x.shape[0], LATENT_DIM])
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -352,7 +352,7 @@ def fit(train_dataset, epochs_number, test_dataset):
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
-        sample_audio(epoch,z,generator)
+        sample_audio(epoch,z0,generator)
 
     # save the model at save interval (not 0)
     if epoch % model_save_interval  == 0:
