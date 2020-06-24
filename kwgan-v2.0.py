@@ -261,13 +261,12 @@ def train_discriminator_step(x,z):
 @tf.function
 # Taken away training more on discriminator that generator
 def train_step(x,z):
-  with tf.GradientTape() as disc_tape, tf.GradientTape() as gen_tape:  
+  disc_loss = discriminator_loss(x, z)
+  
+  with tf.GradientTape() as gen_tape:  
     gen_loss = generator_loss(z)
-    disc_loss = discriminator_loss(x, z)
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
-  discriminator_gradients = disc_tape.gradient(disc_loss,discriminator.trainable_variables)
   generator_optimizer.apply_gradients(zip(generator_gradients,generator.trainable_variables))
-  discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
   
   return disc_loss, gen_loss
 
