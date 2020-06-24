@@ -259,7 +259,6 @@ def train_discriminator_step(x,z):
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,discriminator.trainable_variables))
 
 @tf.function
-# Taken away training more on discriminator that generator
 def train_step(x,z):
   disc_loss = discriminator_loss(x, z)
   
@@ -331,9 +330,9 @@ def fit(train_dataset, epochs_number, test_dataset):
       for n, train_x in train_dataset.enumerate():     
         z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
         train_discriminator_step(train_x,z)
-          
+
     # train generator
-    for n,train_x in train_dataset.enumerate():
+    for n, train_x in train_dataset.enumerate():
       z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       disc_loss, gen_loss = train_step(train_x,z)
       train_loss.append([disc_loss, gen_loss])
