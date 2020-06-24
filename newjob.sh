@@ -7,16 +7,19 @@
 # =============================================================================
 
 # PYTHON SCRIPT FILENAME GOES IN ARGUMENT 1
-if [[ $1 ]]
-then
+if [[ $1 ]]; then
 	script=$1
 else
 	echo "Add input script. Exiting."
 	exit
 fi
 
-# SET WALL TIME 
-walltime=24:00:00
+# SET WALL TIME
+if [[ $2 && $2 -gt 0 ]]; then
+	walltime=$2:00:00
+else
+	walltime=24:00:00
+fi
 
 # SET MESSAGING WHEN JOB BEGINS/ENDS
 recalls=abe
@@ -80,4 +83,4 @@ echo "# job created on" $(date) >> $j
 printf "%s %s\n"    "source" "${venv}" >> $j
 printf "%s %s %s\n" "module" "load" "${cuda}" >> $j
 printf "%s %s %s\n" "python" "${script_path}" "$job_prefix" >> $j
-echo "Finished making job: $j"
+echo "Finished making job: $j $walltime"
