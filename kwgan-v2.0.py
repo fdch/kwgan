@@ -305,7 +305,7 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 #------------------------------------------------------------------------------
 
 z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
-z  = tf.random.normal([DIMS[0], LATENT_DIM])
+# z  = tf.random.normal([BATCH_SIZE, DIMS[0], LATENT_DIM])
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -330,19 +330,19 @@ def fit(train_dataset, epochs_number, test_dataset):
     # trainning the discriminator more times
     for k in range(n_discriminator):
       for n, train_x in train_dataset.enumerate():     
-        # z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
+        z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
         train_discriminator_step(train_x,z)
           
     # train generator
     for n,train_x in train_dataset.enumerate():
-      # z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
+      z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
       disc_loss, gen_loss = train_step(train_x,z)
       train_loss.append([disc_loss, gen_loss])
 
     # Test Loss
     test_loss=[]
     for n, test_x in test_dataset.enumerate():
-      # z=tf.random.normal([test_x.shape[0], LATENT_DIM])
+      z=tf.random.normal([test_x.shape[0], LATENT_DIM])
       
       test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
     
