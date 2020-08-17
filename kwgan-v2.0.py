@@ -48,8 +48,8 @@ dataset_path="prueba" # solo numero nueve; o bien sc09"
 model_train_path=node_path+"/"+dataset_path+"/" # +"train"
 model_test_path=node_path+"/"+dataset_path+"/" # +"test"
 model_save_path=node_path+"/"+code_path+"/saved_model"
-audio_save_path=node_path+"/"+code_path+"/audio/train-"+str(job_suffix)
-audio_prefix="kwg-" # audio filename prefix for audio export
+audio_save_path=node_path+"/"+code_path+"/audio/train-9-"+str(job_suffix)
+audio_prefix="kwg-9-" # audio filename prefix for audio export
 
 Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 
@@ -302,7 +302,8 @@ tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 # z0 noise same latent vector 
 #------------------------------------------------------------------------------
 
-z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
+z0=tf.random.normal([audio_export_per_epoch, LATENT_DIM])      
+# z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 # z  = tf.random.normal([BATCH_SIZE, DIMS[0], LATENT_DIM])
 
 #------------------------------------------------------------------------------
