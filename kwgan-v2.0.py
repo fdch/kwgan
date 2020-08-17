@@ -44,9 +44,9 @@ job_suffix=sys.argv[1]
 
 node_path="/users/PAS1309/fdch"
 code_path="kwgan"
-dataset_path="sc09"
-model_train_path=node_path+"/"+dataset_path+"/train"
-model_test_path=node_path+"/"+dataset_path+"/test"
+dataset_path="prueba" # solo numero nueve; o bien sc09"
+model_train_path=node_path+"/"+dataset_path+"/" # +"train"
+model_test_path=node_path+"/"+dataset_path+"/" # +"test"
 model_save_path=node_path+"/"+code_path+"/saved_model"
 audio_save_path=node_path+"/"+code_path+"/audio/train-"+str(job_suffix)
 audio_prefix="kwg-" # audio filename prefix for audio export
