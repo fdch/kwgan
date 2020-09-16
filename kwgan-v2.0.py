@@ -42,14 +42,15 @@ n_discriminator = 5 # Number of times discr. is trained per generator train
 
 job_suffix=sys.argv[1]
 
-node_path="/users/PAS1309/fdch"
+node_path="/data/math-gan-pdes/math1656"
 code_path="kwgan"
-dataset_path="prueba" # solo numero nueve; o bien sc09"
-model_train_path=node_path+"/"+dataset_path+"/" # +"train"
-model_test_path=node_path+"/"+dataset_path+"/" # +"test"
+dataset_path="SC09" # solo numero nueve; o bien sc09"
+model_train_path=node_path+"/"+dataset_path
+model_test_path=model_train_path
+# model_test_path=node_path+"/"+dataset_path # +"test"
 model_save_path=node_path+"/"+code_path+"/saved_model"
-audio_save_path=node_path+"/"+code_path+"/audio/train-9-"+str(job_suffix)
-audio_prefix="kwg-9-" # audio filename prefix for audio export
+audio_save_path=node_path+"/"+code_path+"/audio/train"+str(job_suffix)
+audio_prefix="kwg" # audio filename prefix for audio export
 
 Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 
@@ -58,13 +59,13 @@ Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 #------------------------------------------------------------------------------
 
 def audio_to_numpy(path):
-
   a=[]
-  for i in listdir(path):
-    u=np.zeros((2**14,1))
-    _, y= wav.read(path+"/"+i)
-    u[:y.size,0]=y
-    a.append(u)
+  for k in listdir(path):
+    for i in listdir(path+"/"+k):
+      u=np.zeros((2**14,1))
+      _, y= wav.read(path+"/"+i)
+      u[:y.size,0]=y
+      a.append(u)
   a = np.asarray(a,dtype='float32')
   a /= 32768.
   return a
