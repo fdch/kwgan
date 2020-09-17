@@ -1,7 +1,7 @@
 #!/bin/sh
 # =============================================================================
 #
-# This file creates a new job with a PBS template.
+# This file creates a new job with a SBATCH template.
 # It looks inside "./jobs" subdir for the last job and increments it
 #
 # =============================================================================
@@ -18,22 +18,25 @@ fi
 if [[ $2 && $2 -gt 0 ]]; then
 	walltime=$2:00:00
 else
-	walltime=24:00:00
+	echo "Add input walltime. Exiting."
+	exit
 fi
 
 # SET MESSAGING WHEN JOB BEGINS/ENDS
 recalls=abe
 
-# SET CUDA MODULE TO LOAD
-cuda=cuda/10.1.168
+# SET CUDA MODULES TO LOAD
+conda=anaconda3/2019.03
+cuda=gpu/cuda/10.1.243
+cudnn=gpu/cudnn/7.6.5__cuda-10.1
 
 # SELECT NODES AND GPUS
 nodes=1
-ppn=28
+# ppn=28
 gpus=1
 
 # SET VIRTUAL ENVIRONMENT ROOT DIR (LOCATED ON '~/.venvs/...')
-which_venv=tf-gpu2.1-3.7
+which_venv=tensor-env
 
 # =============================================================================
 # Shouldn't edit what follows unless we change stuff
