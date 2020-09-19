@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import time, sys
 import tensorflow as tf
-import numpy as np 
+import numpy as np
 import scipy.io.wavfile as wav
 from os import listdir
 from pathlib import Path
@@ -44,7 +44,7 @@ job_suffix=sys.argv[1]
 
 node_path="/data/math-gan-pdes/math1656"
 code_path="kwgan"
-dataset_path="SC09" # solo numero nueve; o bien sc09"
+dataset_path="datasets/SC09" # solo numero nueve; o bien sc09"
 model_train_path=node_path+"/"+dataset_path
 model_test_path=model_train_path
 # model_test_path=node_path+"/"+dataset_path # +"test"
@@ -182,7 +182,7 @@ def get_discriminator():
   return tf.keras.Model(x, output)
 
 #------------------------------------------------------------------------------
-# # set allow growth flag 
+# # set allow growth flag
 # # issue here https://github.com/tensorflow/tensorflow/issues/36025
 # # and https://www.tensorflow.org/guide/gpu#limiting_gpu_memory_growth
 # #------------------------------------------------------------------------------
@@ -218,7 +218,7 @@ generator = get_generator()
 discriminator = get_discriminator()
 
 # Adam optimizer with parameters from WAVEGAN
-generator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)   
+generator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 
 #------------------------------------------------------------------------------
@@ -262,12 +262,12 @@ def train_discriminator_step(x,z):
 @tf.function
 def train_step(x,z):
   disc_loss = discriminator_loss(x, z)
-  
-  with tf.GradientTape() as gen_tape:  
+
+  with tf.GradientTape() as gen_tape:
     gen_loss = generator_loss(z)
   generator_gradients = gen_tape.gradient(gen_loss,generator.trainable_variables)
   generator_optimizer.apply_gradients(zip(generator_gradients,generator.trainable_variables))
-  
+
   return disc_loss, gen_loss
 
 #------------------------------------------------------------------------------
@@ -300,10 +300,10 @@ tf.print("Finished makind datasets.")
 tf.print ('Batch Dataset time is {} sec,'.format( batch_dataset_end ))
 
 #------------------------------------------------------------------------------
-# z0 noise same latent vector 
+# z0 noise same latent vector
 #------------------------------------------------------------------------------
 
-z0=tf.random.normal([audio_export_per_epoch, LATENT_DIM])      
+z0=tf.random.normal([audio_export_per_epoch, LATENT_DIM])
 # z0 = np.random.normal(0, 1, (audio_export_per_epoch, LATENT_DIM))
 # z  = tf.random.normal([BATCH_SIZE, DIMS[0], LATENT_DIM])
 
@@ -316,7 +316,7 @@ z0=tf.random.normal([audio_export_per_epoch, LATENT_DIM])
 #------------------------------------------------------------------------------
 
 def fit(train_dataset, epochs_number, test_dataset):
-  
+
   tf.print("begin")
 
   tf.print("Epoch,Tst_Dl, Tst_Gl, Trn_Dl,Trn_Gl,Time")
@@ -324,18 +324,18 @@ def fit(train_dataset, epochs_number, test_dataset):
   for epoch in range(epochs_number):
     start = time.time()
 
-    
+
     train_loss=[]
-    
+
     # trainning the discriminator more times
     for k in range(n_discriminator):
-      for n, train_x in train_dataset.enumerate():     
-        z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
+      for n, train_x in train_dataset.enumerate():
+        z=tf.random.normal([train_x.shape[0], LATENT_DIM])
         train_discriminator_step(train_x,z)
 
     # train generator
     for n, train_x in train_dataset.enumerate():
-      z=tf.random.normal([train_x.shape[0], LATENT_DIM])      
+      z=tf.random.normal([train_x.shape[0], LATENT_DIM])
       disc_loss, gen_loss = train_step(train_x,z)
       train_loss.append([disc_loss, gen_loss])
 
@@ -343,12 +343,12 @@ def fit(train_dataset, epochs_number, test_dataset):
     test_loss=[]
     for n, test_x in test_dataset.enumerate():
       z=tf.random.normal([test_x.shape[0], LATENT_DIM])
-      
+
       test_loss.append([discriminator_loss(test_x,z),generator_loss(z)])
-    
+
     tr_loss= np.asarray(np.mean(train_loss,axis=0))
     te_loss=np.asarray(np.mean(test_loss,axis=0))
-    
+
     if epoch != 0:
       # sample audio at export interval (not 0)
       if epoch % audio_export_interval == 0:
@@ -358,14 +358,13 @@ def fit(train_dataset, epochs_number, test_dataset):
     if epoch % model_save_interval  == 0:
       save_model(generator,     "KW_gen")
       save_model(discriminator, "KW_dis")
-    
+
     time_to_train_epoch = time.time()-start
-    
+
     tf.print(epoch,tr_loss[0],tr_loss[1],te_loss[0],te_loss[1],time_to_train_epoch)
-  
+
   tf.print("end")
 
 
 
 fit(train_dataset, epochs_number, test_dataset)
-
