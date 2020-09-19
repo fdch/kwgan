@@ -63,7 +63,7 @@ def audio_to_numpy(path):
   for k in listdir(path):
     for i in listdir(path+"/"+k):
       u=np.zeros((2**14,1))
-      _, y= wav.read(path+"/"+i)
+      _, y= wav.read(path+"/"+k+"/"+i)
       u[:y.size,0]=y
       a.append(u)
   a = np.asarray(a,dtype='float32')
