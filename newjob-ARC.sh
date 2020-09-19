@@ -56,6 +56,7 @@ do
 done
 job_prefix=$((job_prefix+=1))
 
+<<<<<<< Updated upstream
 env=/bin/bash # job environment
 job_name=${job_prefix}${job_suffix}
 job_output=${job_name}
@@ -79,11 +80,51 @@ printPBS "-m" "${recalls}" >> $j
 printPBS "-S" "${env}" >> $j
 printPBS "-e" "${job_logs}/${job_name}-e.txt" >> $j
 printPBS "-o" "${job_logs}/${job_name}-o.txt" >> $j
+=======
+
+# PATHs
+job_name=${job_prefix}${job_suffix}
+job_output=${job_name}
+venv=$DATA/${which_venv}
+script_path=${path}/${script}
+
+
+# Print function for writing SBATCH
+function printSBATCH() {
+	local h=$1
+	printf "%s %s\n" "#SBATCH" "${h}"
+}
+
+# SET CLUSTER PATH NAME
+name=KWAMEH
+j="${job_path}/${job_name}.sh"
+
+
+printSBATCH "--nodes=${nodes}" > $j
+printSBATCH "--ntasks-per-node=1" >> $j
+printSBATCH "--time=${walltime}" >> $j
+printSBATCH "--job-name=${name}" >> $j
+printSBATCH "--partition=htc" >> $j
+printSBATCH "--gres=$gpu:1" >> $j
+>>>>>>> Stashed changes
 printf "#" >> $j
 printf "=%.0s" {1..80} >> $j
 echo >> $j
 echo "# job created on" $(date) >> $j
+<<<<<<< Updated upstream
 printf "%s %s\n"    "source" "${venv}" >> $j
 printf "%s %s %s\n" "module" "load" "${cuda}" >> $j
+=======
+
+# MODULE LOAD
+printf "%s %s %s\n" "module" "load" "${conda}" >> $j
+printf "%s %s %s\n" "module" "load" "${cuda}" >> $j
+printf "%s %s %s\n" "module" "load" "${cudnn}" >> $j
+
+# ACTIVATE ENVIROMENT
+printf "%s %s %s\n"    "source" "activate" "${venv}" >> $j
+
+# RUN SCRIPT
+>>>>>>> Stashed changes
 printf "%s %s %s\n" "python" "${script_path}" "$job_prefix" >> $j
 echo "Finished making job: $j $walltime"
