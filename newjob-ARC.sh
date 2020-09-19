@@ -78,6 +78,11 @@ printSBATCH "--time=${walltime}" >> $j
 printSBATCH "--job-name=${name}" >> $j
 printSBATCH "--partition=htc" >> $j
 printSBATCH "--gres=gpu:${gpus}" >> $j
+printSBATCH "--mail-type=ALL" >> $j
+printSBATCH "--mail-user=matias.delgadino@maths.ox.ac.uk" >> $j
+printSBATCH "--output=${job_logs}/${job_name}.out" >> $j
+printSBATCH "--error=${job_logs}/${job_name}.err" >> $j
+
 printf "#" >> $j
 printf "=%.0s" {1..80} >> $j
 echo >> $j
