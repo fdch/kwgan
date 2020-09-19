@@ -59,7 +59,7 @@ job_prefix=$((job_prefix+=1))
 # PATHs
 job_name=${job_prefix}${job_suffix}
 job_output=${job_name}
-venv=${which_venv}
+venv=/data/math-gan-pdes/math1656/${which_venv}
 script_path=${path}/${script}
 
 # Print function for writing SBATCH
@@ -78,7 +78,7 @@ printSBATCH "--ntasks-per-node=1" >> $j
 printSBATCH "--time=${walltime}" >> $j
 printSBATCH "--job-name=${name}" >> $j
 printSBATCH "--partition=htc" >> $j
-printSBATCH "--gres=$gpu:1" >> $j
+printSBATCH "--gres=gpu:${gpu}" >> $j
 printf "#" >> $j
 printf "=%.0s" {1..80} >> $j
 echo >> $j
