@@ -71,8 +71,8 @@ function printSBATCH() {
 name=KWAMEH
 j="${job_path}/${job_name}.sh"
 
-printf "%s\n" "#!/bin/bash"
-printSBATCH "--nodes=${nodes}" > $j
+printf "%s\n" "#!/bin/bash" >$j
+printSBATCH "--nodes=${nodes}" >> $j
 printSBATCH "--ntasks-per-node=1" >> $j
 printSBATCH "--time=${walltime}" >> $j
 printSBATCH "--job-name=${name}" >> $j
