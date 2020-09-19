@@ -59,7 +59,6 @@ job_prefix=$((job_prefix+=1))
 # PATHs
 job_name=${job_prefix}${job_suffix}
 job_output=${job_name}
-venv=/data/math-gan-pdes/math1656/${which_venv}
 script_path=${path}/${script}
 
 # Print function for writing SBATCH
@@ -90,7 +89,7 @@ printf "%s %s %s\n" "module" "load" "${cuda}" >> $j
 printf "%s %s %s\n" "module" "load" "${cudnn}" >> $j
 
 # ACTIVATE ENVIROMENT
-printf "%s %s %s\n"    "source" "activate" "${venv}" >> $j
+printf "%s %s %s\n"    "source" "activate" "/data/math-gan-pdes/math1656/${which_venv}" >> $j
 
 # RUN SCRIPT
 printf "%s %s %s\n" "python" "${script_path}" "$job_prefix" >> $j
