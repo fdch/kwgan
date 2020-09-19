@@ -77,7 +77,7 @@ printSBATCH "--ntasks-per-node=1" >> $j
 printSBATCH "--time=${walltime}" >> $j
 printSBATCH "--job-name=${name}" >> $j
 printSBATCH "--partition=htc" >> $j
-printSBATCH "--gres=gpu:${gpu}" >> $j
+printSBATCH "--gres=gpu:${gpus}" >> $j
 printf "#" >> $j
 printf "=%.0s" {1..80} >> $j
 echo >> $j
