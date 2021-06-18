@@ -46,7 +46,7 @@ wgan_kernel_len = 25
 n_discriminator = 5 
 
 LAMBDA = 10
-AUTOTUNE = tf.data.AUTOTUNE
+AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 #------------------------------------------------------------------------------
 # paths and filenames
