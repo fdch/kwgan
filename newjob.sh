@@ -3,9 +3,11 @@
 #
 # This file creates a new job with a PBS template.
 # It looks inside "./jobs" subdir for the last job and increments it
+# call it like this:
+#
+# $ ./newjob.sh <script_name> [hours epochs split mem] 
 #
 # =============================================================================
-
 # PYTHON SCRIPT FILENAME GOES IN ARGUMENT 1
 if [[ $1 ]]; then
 	script=$1
@@ -21,8 +23,31 @@ else
 	walltime=24:00:00
 fi
 
+# SET EPOCHS
+if [[ $3 ]]; then
+	EPOCHS=$3
+else
+	EPOCHS=10
+fi
+
+# SET S_TRAIN
+if [[ $4 ]]; then
+	S_TRAIN=$4
+else
+	S_TRAIN=0
+fi
+
+# SET mem per cpu
+if [[ $5 && $5 -gt 0 ]]; then
+	MEM=$5
+else
+	MEM=4000
+fi
+
+
 # SET MESSAGING WHEN JOB BEGINS/ENDS
-recalls=abe
+EMAIL=camarahalac.1@osu.edu
+recalls=ALL
 
 # SET CUDA MODULE TO LOAD
 cuda=cuda/10.1.168
@@ -44,14 +69,24 @@ path=$(pwd)
 job_logs=${path}/logs
 job_path=${path}/jobs
 job_suffix="-train"
+modelpath=${path}/saved_model
+DATADIR=~/nsynth
 
-# GET LATEST PREFIX AND INCREMENT IT
 job_prefix=0
-for i in ${job_path}/*.sh
-do
+i=0
+
+if ! test -f ${job_path}/0-*.sh; then 
+	job_prefix=0
+else
+	# GET LATEST PREFIX AND INCREMENT IT
+	l=$(ls ${job_path} | grep -v readme | sort -n)
+	for i in ${l[@]}
+	do
+		i=$i
+	done
 	job_prefix=$(basename $i "-train.sh" | cut -f1 -d- )
-done
-job_prefix=$((job_prefix+=1))
+	job_prefix=$((job_prefix+=1))
+fi
 
 env=/bin/bash # job environment
 job_name=${job_prefix}${job_suffix}
@@ -59,28 +94,33 @@ job_output=${job_name}
 venv=${path}/../.venvs/${which_venv}/bin/activate
 script_path=${path}/${script}
 
-function printPBS() {
+function printSBATCH() {
 	local h=$1
-	local c=$2
-	printf "%s %s %s\n" "#PBS" "${h}" "${c}"
+	printf "%s %s\n" "#SBATCH" "${h}"
 }
 
 # SET CLUSTER PATH NAME
 name=PAS1309
 j="${job_path}/${job_name}.sh"
-printPBS "-l" "walltime=${walltime}" > $j
-printPBS "-l" "nodes=${nodes}:ppn=${ppn}:gpus=${gpus}:default" >> $j
-printPBS "-A" "${name} " >> $j
-printPBS "-N" "${job_output}" >> $j
-printPBS "-m" "${recalls}" >> $j
-printPBS "-S" "${env}" >> $j
-printPBS "-e" "${job_logs}/${job_name}-e.txt" >> $j
-printPBS "-o" "${job_logs}/${job_name}-o.txt" >> $j
+printf "%s\n" "#!/bin/bash" > $j
+printSBATCH "--time=${walltime}" >> $j
+printSBATCH "--nodes=${nodes} --ntasks-per-node=${ppn} --gpus-per-node=${gpus}  --gpu_cmode=shared" >> $j
+printSBATCH "--account=${name} " >> $j
+printSBATCH "--job-name=${job_output}" >> $j
+printSBATCH "--mem-per-cpu=${MEM}" >> $j
+printSBATCH "--mail-type=${recalls}" >> $j 
+printSBATCH "--mail-user=${EMAIL}" >> $j 
+printSBATCH "--error=${job_logs}/${job_name}-e.txt" >> $j
+printSBATCH "--output=${job_logs}/${job_name}-o.txt" >> $j
 printf "#" >> $j
 printf "=%.0s" {1..80} >> $j
 echo >> $j
 echo "# job created on" $(date) >> $j
+echo "# with these arguments:" >> $j
+echo "# $@" >> $j
+echo "#" >> $j
 printf "%s %s\n"    "source" "${venv}" >> $j
 printf "%s %s %s\n" "module" "load" "${cuda}" >> $j
-printf "%s %s %s\n" "python" "${script_path}" "$job_prefix" >> $j
-echo "Finished making job: $j $walltime"
+printf "%s %s %s %s %s %s %s\n" "python" "${script_path}" "$job_prefix" "$modelpath" "$EPOCHS" "$S_TRAIN" "$DATADIR" >> $j
+echo "Finished making job: $j"
+echo "with these arguments: $@"
