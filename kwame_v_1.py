@@ -92,10 +92,12 @@ def get_waveform(file_path):
   waveform = decode_audio(audio_binary)
   return waveform #, label
 
-tf.print("Making datasets...")
+print("Making datasets...")
 
 batch_dataset_start = time.time()
 
+print(model_train_path)
+print(model_test_path)
 # find the filenames
 train_files = tf.io.gfile.glob(model_train_path + "/*.wav")
 test_files  = tf.io.gfile.glob(model_test_path  + "/*.wav")
@@ -120,7 +122,7 @@ val_ds  = test_ds.batch(BATCH_SIZE)
 train_ds = train_ds.cache().prefetch(AUTOTUNE)
 val_ds = val_ds.cache().prefetch(AUTOTUNE)
 
-tf.print(f"Done making datasets. It took: {time.time()-batch_dataset_start} seconds.")
+print(f"Done making datasets. It took: {time.time()-batch_dataset_start} seconds.")
 
 #------------------------------------------------------------------------------
 # sample audio routine
@@ -354,11 +356,11 @@ def train_step(x):
 def fit(train_ds, epochs, test_ds):
     
   start_time = time.time()
-  tf.print("="*80)
-  tf.print(f"Begin at {start_time}")
-  tf.print("="*80)
+  print("="*80)
+  print(f"Begin at {start_time}")
+  print("="*80)
 
-  tf.print("Epoch, Tst_Dl, Tst_Gl, Trn_Dl, Trn_Gl, Time")
+  print("Epoch, Tst_Dl, Tst_Gl, Trn_Dl, Trn_Gl, Time")
 
   for epoch in range(epochs):
     start = time.time()
@@ -400,9 +402,9 @@ def fit(train_ds, epochs, test_ds):
     
     tf.print(epoch,tr_loss[0],tr_loss[1],te_loss[0],te_loss[1],time_to_train_epoch)
   
-  tf.print("="*80)
-  tf.print(f"Ended at {time.time()}, took: {time.time()-start_time} secs.")
-  tf.print("="*80)
+  print("="*80)
+  print(f"Ended at {time.time()}, took: {time.time()-start_time} secs.")
+  print("="*80)
 
 discriminator.summary()
 generator.summary()
