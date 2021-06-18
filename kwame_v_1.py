@@ -211,7 +211,7 @@ def get_discriminator():
   dim = wgan_dim
   kernel_len = wgan_kernel_len
   # Noise input
-  x = Input(shape=DIMS, batch_size=BATCH_SIZE, name='audio')
+  x = Input(shape=DIMS, name='audio')
   output = x
   # WaveGAN arquitecture
   output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
