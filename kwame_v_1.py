@@ -101,8 +101,8 @@ print(model_test_path)
 # find the filenames
 train_files = tf.io.gfile.glob(model_train_path + "/*.wav")
 test_files  = tf.io.gfile.glob(model_test_path  + "/*.wav")
-
-
+print(f"Using {len(train_files)} files for training")
+print(f"Using {len(test_files)} files for validation")
 # shuffle filenames
 train_files = tf.random.shuffle(train_files)
 test_files  = tf.random.shuffle(test_files)
