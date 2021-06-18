@@ -213,7 +213,7 @@ def get_discriminator():
   # Noise input
   x = Input(shape=DIMS, name='audio')
   output = x
-  output = Reshape((4096,64))(output)
+  output = Reshape((4096,1))(output)
   # WaveGAN arquitecture
   output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
   output = phaseshuffle(output)
