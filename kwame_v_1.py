@@ -103,14 +103,21 @@ print(model_test_path)
 # find the filenames
 train_files = tf.io.gfile.glob(model_train_path + "/*.wav")
 test_files  = tf.io.gfile.glob(model_test_path  + "/*.wav")
-print(f"Using {len(train_files)} files for training")
-print(f"Using {len(test_files)} files for validation")
+tr_len = len(train_files)
+ts_len = len(test_files)
+
+print(f"Using {tr_len} files for training")
+print(f"Using {ts_len} files for validation")
 # shuffle filenames
 train_files = tf.random.shuffle(train_files)
 test_files  = tf.random.shuffle(test_files)
+
+tr_split = tr_len // 100 * 5
+ts_split = ts_len // 100 * 5
+
 # make the dataset from tensor slices
-train_files_ds = tf.data.Dataset.from_tensor_slices(train_files)
-test_files_ds  = tf.data.Dataset.from_tensor_slices(test_files)
+train_files_ds = tf.data.Dataset.from_tensor_slices(train_files[:tr_split])
+test_files_ds  = tf.data.Dataset.from_tensor_slices(test_files[:ts_split])
 
 # map the function to read filenames into decoded arrays
 train_ds = train_files_ds.map(get_waveform, num_parallel_calls=AUTOTUNE)
