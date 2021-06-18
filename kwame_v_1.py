@@ -13,7 +13,7 @@ import time, sys
 import tensorflow as tf
 import numpy as np 
 import scipy.io.wavfile as wav
-from os import listdir
+import glob
 from pathlib import Path
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -45,6 +45,7 @@ wgan_kernel_len = 25
 # Number of times discr. is trained per generator train
 n_discriminator = 5 
 
+DATABASE = 5 #percentage of the database
 LAMBDA = 10
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -101,22 +102,24 @@ batch_dataset_start = time.time()
 print(model_train_path)
 print(model_test_path)
 # find the filenames
-train_files = tf.io.gfile.glob(model_train_path + "/*.wav")
-test_files  = tf.io.gfile.glob(model_test_path  + "/*.wav")
-tr_len = len(train_files)
-ts_len = len(test_files)
+train_files = [ i for i in glob.glob(model_train_path + "/*.wav")]
+test_files  = [ i for i in glob.glob(model_test_path + "/*.wav")]
 
-print(f"Using {tr_len} files for training")
-print(f"Using {ts_len} files for validation")
+tr_split = len(train_files) // 100 * DATABASE
+ts_split = len(test_files) // 100  * DATABASE
+
+train_files = train_files[:tr_split]
+test_files = test_files[:ts_split]
+
+print(f"Using {len(train_files)} files for training")
+print(f"Using {len(test_files) } files for validation")
+
 # shuffle filenames
 train_files = tf.random.shuffle(train_files)
 test_files  = tf.random.shuffle(test_files)
 
-tr_split = tr_len // 100 * 5
-ts_split = ts_len // 100 * 5
-
 # make the dataset from tensor slices
-train_files_ds = tf.data.Dataset.from_tensor_slices(train_files[:tr_split])
+train_files_ds = tf.data.Dataset.from_tensor_slices(train_files)
 test_files_ds  = tf.data.Dataset.from_tensor_slices(test_files[:ts_split])
 
 # map the function to read filenames into decoded arrays
