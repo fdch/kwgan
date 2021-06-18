@@ -273,32 +273,32 @@ discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 
 @tf.function
 def generator_loss(z):
-    tf.print("*"*80)
-    tf.print("Generator Loss")
-    tf.print("*"*80)
-    tf.print("Input shape: ", z.shape)
+    # tf.print("*"*80)
+    # tf.print("Generator Loss")
+    # tf.print("*"*80)
+    # tf.print("Input shape: ", z.shape)
     fake = discriminator(generator(z))
-    tf.print("Fake disc shape: ", fake.shape)
+    # tf.print("Fake disc shape: ", fake.shape)
     gen_loss = -tf.reduce_mean(fake)
     return gen_loss
 
 @tf.function
 def discriminator_loss(x, z):
-    tf.print("_"*80)
-    tf.print("Discriminator Loss")
-    tf.print("_"*80)
+    # tf.print("_"*80)
+    # tf.print("Discriminator Loss")
+    # tf.print("_"*80)
     epsilon = tf.random.uniform(shape=(x.shape[0], x.shape[1]), minval=0., maxval=1.)
-    tf.print("epsilon shape:", epsilon.shape)
+    # tf.print("epsilon shape:", epsilon.shape)
     gen = generator(z)
-    tf.print("generated shape:", gen.shape)
+    # tf.print("generated shape:", gen.shape)
     x_hat = epsilon * x + (1 - epsilon) * gen[:,0] 
-    tf.print("x_hat shape:", x_hat.shape)
+    # tf.print("x_hat shape:", x_hat.shape)
     d_hat = discriminator(x_hat)
-    tf.print("d_hat shape:", d_hat.shape)
+    # tf.print("d_hat shape:", d_hat.shape)
     ddx = tf.gradients(d_hat, x_hat)[0]
     ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
     ddx = tf.reduce_mean(tf.square(ddx - 1.0))
-    tf.print("ddx shape", ddx.shape)
+    # tf.print("ddx shape", ddx.shape)
     fake = discriminator(generator(z))
     real = discriminator(x)
     dis_loss = (tf.reduce_mean(real) - tf.reduce_mean(fake) + LAMBDA) * ddx
@@ -317,24 +317,24 @@ def train_discriminator_step(x):
 
 @tf.function
 def step(x):
-    tf.print("="*30)
-    tf.print("STEP")
-    tf.print("="*30)
-    tf.print("Input Shape: ", x.shape)
+    # tf.print("="*30)
+    # tf.print("STEP")
+    # tf.print("="*30)
+    # tf.print("Input Shape: ", x.shape)
     # Match batch sizes with input batch size
     z = tf.random.normal(shape=(x.shape[0], LATENT_DIM))
-    tf.print("Latent Z Shape: ", z.shape)
+    # tf.print("Latent Z Shape: ", z.shape)
     # discriminating the real audio
     real = discriminator(x)
-    tf.print("Real Disc Shape: ", real.shape)
+    # tf.print("Real Disc Shape: ", real.shape)
     # discriminating the generated audio (fake)
     fake = discriminator(generator(z))
-    tf.print("Fake Disc Shape: ", fake.shape)
+    # tf.print("Fake Disc Shape: ", fake.shape)
     # take the losses
     gen_loss = generator_loss(z)
-    tf.print("Generator Loss Shape: ", gen_loss.shape)
+    # tf.print("Generator Loss Shape: ", gen_loss.shape)
     disc_loss = discriminator_loss(x,z)
-    tf.print("Discriminator Loss Shape: ", disc_loss.shape)
+    # tf.print("Discriminator Loss Shape: ", disc_loss.shape)
     return real, fake, gen_loss, disc_loss, z
 
 @tf.function
