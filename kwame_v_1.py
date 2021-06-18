@@ -214,6 +214,10 @@ def get_discriminator():
   x = Input(shape=DIMS, batch_size=BATCH_SIZE, name='audio')
   output = x
   # WaveGAN arquitecture
+  output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
+  output = phaseshuffle(output)
+    # output = BatchNormalization()(output)
+  output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*2, kernel_len, 4, padding='SAME')(output)
   output = phaseshuffle(output)
     # output = BatchNormalization()(output)
@@ -223,15 +227,11 @@ def get_discriminator():
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*8, kernel_len, 4, padding='SAME')(output)
-  output = phaseshuffle(output)
-    # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
-  output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
   #   # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
-  # output = Conv1D(dim*32, kernel_len, 4, padding='SAME')(output)
+  output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
     # output = BatchNormalization()(output)
-  # output = tf.nn.leaky_relu(output)
+  output = tf.nn.leaky_relu(output)
   output = Reshape(target_shape=DIMS)(output)
   output = Dense(1)(output)
 
