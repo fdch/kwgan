@@ -58,9 +58,9 @@ node_path="/users/PAS1309/fdch"
 code_path="kwgan"
 audio_prefix="kwg-9-" # audio filename prefix for audio export
 
-dataset_path="prueba" # solo numero nueve; o bien sc09"
-model_train_path = node_path + "/" + dataset_path + "/" # +"train"
-model_test_path  = node_path + "/" + dataset_path + "/" # +"test"
+dataset_path="sc09"
+model_train_path = node_path + "/" + dataset_path + "/train"
+model_test_path  = node_path + "/" + dataset_path + "/test"
 model_save_path  = node_path + "/" + code_path + "/saved_model"
 audio_save_path  = node_path + "/" + code_path + "/audio/train-9-"+str(job_suffix)
 
@@ -92,7 +92,9 @@ def get_waveform(file_path):
   waveform = decode_audio(audio_binary)
   return waveform #, label
 
+print("-"*80)
 print("Making datasets...")
+print("-"*80)
 
 batch_dataset_start = time.time()
 
@@ -212,10 +214,6 @@ def get_discriminator():
   x = Input((DIMS), name='audio')
   output = x
   # WaveGAN arquitecture
-  output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
-  output = phaseshuffle(output)
-    # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*2, kernel_len, 4, padding='SAME')(output)
   output = phaseshuffle(output)
     # output = BatchNormalization()(output)
@@ -225,11 +223,15 @@ def get_discriminator():
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*8, kernel_len, 4, padding='SAME')(output)
+  output = phaseshuffle(output)
     # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
   output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
-    # output = BatchNormalization()(output)
+  #   # output = BatchNormalization()(output)
   output = tf.nn.leaky_relu(output)
+  # output = Conv1D(dim*32, kernel_len, 4, padding='SAME')(output)
+    # output = BatchNormalization()(output)
+  # output = tf.nn.leaky_relu(output)
   output = Reshape([DIMS[0]])(output)
   output = Dense(1)(output)
 
