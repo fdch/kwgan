@@ -64,11 +64,11 @@ model_test_path  = node_path + "/" + dataset_path + "/" # +"test"
 model_save_path  = node_path + "/" + code_path + "/saved_model"
 audio_save_path  = node_path + "/" + code_path + "/audio/train-9-"+str(job_suffix)
 
-# uncomment if not on google drive
-model_train_path = "/content/drive/MyDrive/Datasets/sc09/train"
-model_test_path  = "/content/drive/MyDrive/Datasets/sc09/test"
-model_save_path  = "/content/saved_model"
-audio_save_path  = "/content/audio"
+# # uncomment if not on google drive
+# model_train_path = "/content/drive/MyDrive/Datasets/sc09/train"
+# model_test_path  = "/content/drive/MyDrive/Datasets/sc09/test"
+# model_save_path  = "/content/saved_model"
+# audio_save_path  = "/content/audio"
 
 Path(audio_save_path).mkdir(parents=True, exist_ok=True)
 Path(model_save_path).mkdir(parents=True, exist_ok=True)
