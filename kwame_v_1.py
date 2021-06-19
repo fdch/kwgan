@@ -8,7 +8,7 @@ from pathlib import Path
 def decode_audio(audio_binary, file_path):
     audio, sr = tf.audio.decode_wav(audio_binary)
     if sr != SAMPLERATE:
-      print(f"Warning:{file_path} is not at {SR}, but at {sr} Hz")
+      print(f"Warning:{file_path} is not at {SAMPLERATE}, but at {sr} Hz")
     audio = tf.squeeze(audio, axis=-1)
     pad = (1 + DIMS[0] - len(audio)) // 2
     if pad > 0:
