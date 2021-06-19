@@ -70,8 +70,9 @@ def D_lossFun(x, z):
     ddx = tf.reduce_mean(tf.square(ddx - 1.0))
     
     fake = D(gen)
-    
-    return (tf.reduce_mean(D(x))-tf.reduce_mean(fake)+LAMBDA) * ddx
+    real = D(x)
+
+    return (tf.reduce_mean(real) - tf.reduce_mean(fake) + LAMBDA) * ddx
 
 #------------------------------------------------------------------------------
 # steps
