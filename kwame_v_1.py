@@ -54,7 +54,7 @@ class PhaseShuffle(tf.keras.layers.Layer):
 def D_lossFun(x, z):
 
     epsilon = tf.random.uniform(
-      shape=x.shape, 
+      shape=[x.shape[0], x.shape[1], 1], 
       minval=0., 
       maxval=1.)
 
@@ -63,7 +63,7 @@ def D_lossFun(x, z):
     gen = G(z)
     
     x_hat *= gen
-    
+
     d_hat = D(x_hat)
 
     ddx = tf.gradients(d_hat, x_hat)[0]
