@@ -41,10 +41,10 @@ class PhaseShuffle(tf.keras.layers.Layer):
     self.phase_start = self.pad_r
 
   def call(self, inputs):  # Defines the computation from inputs to outputs
-    pad = [ [self.pad_l, self.pad_r], [0, 0] ]
+    pad = [[0,0], [self.pad_l, self.pad_r], [0, 0] ]
     out = tf.pad(inputs, paddings=pad, mode=self.pad_type)
 
-    return out[self.phase_start:self.phase_start+self.x_len,:]
+    return out[:,self.phase_start:self.phase_start+self.x_len,:]
 
 #------------------------------------------------------------------------------
 # loss functions
