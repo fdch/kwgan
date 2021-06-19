@@ -157,7 +157,7 @@ G = tf.keras.models.Sequential([
   tf.keras.layers.Dense(4*4*filt*fmult, activation='relu', name="G_Dense"),
   
   # (16384, 1) -> [BATCH_SIZE, nchannels=1, 16, 1024]
-  tf.keras.layers.Reshape([None,16,filt*fmult],name="G_Reshape_Input"),
+  tf.keras.layers.Reshape([1, 16, filt*fmult],name="G_Reshape_Input"),
   # batch size is assumed heretofore
   # (16, 1024) --> (64, 512)
   tf.keras.layers.Conv2DTranspose(
@@ -185,7 +185,9 @@ G = tf.keras.models.Sequential([
   
   # (4096, 64) --> (16384,1)
   tf.keras.layers.Conv2DTranspose(
-    1, (1,size), (1,strd), padding=pad_u, name="G_UpConv-5", activation=G_act)
+    1, (1,size), (1,strd), padding=pad_u, name="G_UpConv-5", activation=G_act),
+  
+  tf.keras.layers.Reshape([16*filt*fmult,1],name="G_Reshape_Output"),
 
   ], name="Generator")
 
