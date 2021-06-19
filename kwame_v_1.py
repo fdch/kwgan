@@ -51,40 +51,22 @@ class PhaseShuffle(tf.keras.layers.Layer):
 #------------------------------------------------------------------------------
 
 @tf.function
-def G_lossFun(z):
-    # tf.print("*"*80)
-    # tf.print("Generator Loss")
-    # tf.print("*"*80)
-    # tf.print("Input shape: ", z.shape)
-    fake = D(G(z))
-    # tf.print("Fake disc shape: ", fake.shape)
-    gen_loss = -tf.reduce_mean(fake)
-    return gen_loss
-
-@tf.function
 def D_lossFun(x, z):
-    # tf.print("_"*80)
-    # tf.print("Discriminator Loss")
-    # tf.print("_"*80)
+
     epsilon = tf.random.uniform(
       shape=(x.shape[0], x.shape[1]), 
       minval=0., 
       maxval=1.)
-    # tf.print("epsilon shape:", epsilon.shape)
+
     gen = G(z)
-    # tf.print("generated shape:", gen.shape)
     x_hat = epsilon * x + (1 - epsilon) * tf.squeeze(gen) 
-    # tf.print("x_hat shape:", x_hat.shape)
     d_hat = D(x_hat)
-    # tf.print("d_hat shape:", d_hat.shape)
+
     ddx = tf.gradients(d_hat, x_hat)[0]
     ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
     ddx = tf.reduce_mean(tf.square(ddx - 1.0))
-    # tf.print("ddx shape", ddx.shape)
-    fake = D(G(z))
-    real = D(x)
-    dis_loss = (tf.reduce_mean(real) - tf.reduce_mean(fake) + LAMBDA) * ddx
-    return dis_loss
+
+    return (tf.reduce_mean(D(x))-tf.reduce_mean(D(gen))+LAMBDA) * ddx
 
 #------------------------------------------------------------------------------
 # steps
@@ -93,13 +75,13 @@ def D_lossFun(x, z):
 @tf.function
 def step(x):
     z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
-    D_loss = D_lossFun(x, z)
-    G_loss = G_lossFun(z)
+    G_loss = -tf.reduce_mean(D(G(z)))
+    D_loss = D_lossFun(x)
     return G_loss, D_loss
 
 @tf.function
 def D_step(x):
-    z = tf.random.normal([BATCH_SIZE, DIMS[0], DIMS[1]])
+    z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
     with tf.GradientTape() as D_tape:
         D_loss = D_lossFun(x, z)
 
