@@ -156,8 +156,8 @@ relu = {
   "slope":0,
   "thresh":0
 }
-
-AUTOTUNE = tf.data.experimental.AUTOTUNE
+# generator's last conv layer activation
+G_act = tf.keras.activations.tanh
 
 if 4 * 4 * filt * fmult != DIMS[0]:
   print("Warning, wrong dims.")
@@ -201,7 +201,7 @@ G = tf.keras.models.Sequential([
   
   # (4096, 64) --> (16384,1)
   tf.keras.layers.Conv2DTranspose(
-    1, (1,size), (1,strd), padding=pad_u, name="G_UpConv-5", activation=activations.tanh)
+    1, (1,size), (1,strd), padding=pad_u, name="G_UpConv-5", activation=G_act)
 
   ], name="Generator")
 
@@ -310,6 +310,8 @@ train_files_ds = tf.data.Dataset.from_tensor_slices(train_files)
 test_files_ds  = tf.data.Dataset.from_tensor_slices(test_files[:ts_split])
 
 # map the function to read filenames into decoded arrays
+
+AUTOTUNE = tf.data.experimental.AUTOTUNE
 DS_TRAIN = train_files_ds.map(get_waveform, num_parallel_calls=AUTOTUNE)
 DS_TEST  = test_files_ds.map(get_waveform, num_parallel_calls=AUTOTUNE)
 
