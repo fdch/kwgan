@@ -73,7 +73,7 @@ def D_lossFun(x, z):
     # tf.print("epsilon shape:", epsilon.shape)
     gen = G(z)
     # tf.print("generated shape:", gen.shape)
-    x_hat = epsilon * x + (1 - epsilon) * gen[:,0] 
+    x_hat = epsilon * x + (1 - epsilon) * tf.squeeze(gen) 
     # tf.print("x_hat shape:", x_hat.shape)
     d_hat = D(x_hat)
     # tf.print("d_hat shape:", d_hat.shape)
