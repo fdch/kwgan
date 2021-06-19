@@ -99,7 +99,7 @@ def step(x):
 
 @tf.function
 def D_step(x):
-    z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
+    z = tf.random.normal([BATCH_SIZE, DIMS[0], DIMS[1]])
     with tf.GradientTape() as D_tape:
         D_loss = D_lossFun(x, z)
 
