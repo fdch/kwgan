@@ -52,22 +52,22 @@ class PhaseShuffle(tf.keras.layers.Layer):
 
 @tf.function
 def D_lossFun(x, z):
-    
+    return (tf.reduce_mean(D(x)) - tf.reduce_mean(D(G(z))))
 
-    epsilon = tf.random.uniform(
-      shape=[x.shape[0],x.shape[1]], 
-      minval=0., 
-      maxval=1.)
+    # epsilon = tf.random.uniform(
+    #   shape=[x.shape[0],x.shape[1]], 
+    #   minval=0., 
+    #   maxval=1.)
 
-    gen = G(z)
-    x_hat = epsilon * tf.squeeze(x) + (1 - epsilon) * tf.squeeze(gen)
-    d_hat = D(x_hat)
+    # gen = G(z)
+    # x_hat = epsilon * tf.squeeze(x) + (1 - epsilon) * tf.squeeze(gen)
+    # d_hat = D(x_hat)
 
-    ddx = tf.gradients(d_hat, x_hat)[0]
-    ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
-    ddx = tf.reduce_mean(tf.square(ddx - 1.0))
+    # ddx = tf.gradients(d_hat, x_hat)[0]
+    # ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
+    # ddx = tf.reduce_mean(tf.square(ddx - 1.0))
 
-    return (tf.reduce_mean(D(x)) - tf.reduce_mean(D(gen)) + LAMBDA) * ddx
+    # return (tf.reduce_mean(D(x)) - tf.reduce_mean(D(G(z))) + LAMBDA) * ddx
 
 #------------------------------------------------------------------------------
 # steps
