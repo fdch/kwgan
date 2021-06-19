@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 import time, sys
-import numpy as np 
-import scipy.io.wavfile as wav
-import glob
-
-from pathlib import Path
 import tensorflow as tf
-#------------------------------------------------------------------------------
-# Making datasets
-#------------------------------------------------------------------------------
-def decode_audio(audio_binary):
-  
-    audio, _ = tf.audio.decode_wav(audio_binary)
+import scipy.io.wavfile as wav
+from pathlib import Path
+
+def decode_audio(audio_binary, file_path):
+    audio, sr = tf.audio.decode_wav(audio_binary)
+    if sr != SAMPLERATE:
+      print(f"Warning:{file_path} is not at {SR}, but at {sr} Hz")
     audio = tf.squeeze(audio, axis=-1)
     pad = (1 + DIMS[0] - len(audio)) // 2
     if pad > 0:
@@ -21,27 +17,9 @@ def decode_audio(audio_binary):
     return  audio[:DIMS[0]]
 
 def get_waveform(file_path):
-#   label = get_label(file_path)
-  audio_binary = tf.io.read_file(file_path)
-  waveform = decode_audio(audio_binary)
-  return waveform #, label
-#------------------------------------------------------------------------------
-# # set allow growth flag 
-# # issue here https://github.com/tensorflow/tensorflow/issues/36025
-# # and https://www.tensorflow.org/guide/gpu#limiting_gpu_memory_growth
-# #------------------------------------------------------------------------------
-
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-  try:
-    # Currently, memory growth needs to be the same across GPUs
-    for gpu in gpus:
-      tf.config.experimental.set_memory_growth(gpu, True)
-    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-    tf.print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-  except RuntimeError as e:
-    # Memory growth must be set before GPUs have been initialized
-    tf.print(e)
+    audio_binary = tf.io.read_file(file_path)
+    waveform = decode_audio(audio_binary, file_path)
+    return waveform
 
 #------------------------------------------------------------------------------
 # PhaseShuffle Class
@@ -168,7 +146,8 @@ strd   = 4   # strides
 moment = 0.8 # momentum for the moving avg of the batch normalization
 alpha  = 0.2 # leaky relu alpha parameter
 rad    = 2   # range for phase shuffling (-rad, rad+1)
-pad    = 'causal'  # pading for up/down convolution layers
+pad_d  = 'causal'  # padding for down (1d) convolution layers
+pad_u  = 'same'    # padding for up (2dtranspose) convolution layers
 pad_s  = 'reflect' # padding type for phase shuffling
 
 # parameters for the generator's relu activation
@@ -197,27 +176,32 @@ G = tf.keras.models.Sequential([
   tf.keras.layers.Reshape([BATCH_SIZE, 16, filt * fmult], name="G_Reshape_Input"),
   # batch size is assumed heretofore
   # (16, 1024) --> (64, 512)
-  tf.keras.layers.Conv2DTranspose(filt*fmult//2, (1,size), (1,strd), padding=pad, name="G_UpConv-1"),
+  tf.keras.layers.Conv2DTranspose(
+    filt*fmult//2, (1,size), (1,strd), padding=pad_u, name="G_UpConv-1"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-1"),
   tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-1"),
   
   # (64, 512) --> (256, 256)
-  tf.keras.layers.Conv2DTranspose(filt*fmult//4, (1,size), (1,strd), padding=pad, name="G_UpConv-2"),
+  tf.keras.layers.Conv2DTranspose(
+    filt*fmult//4, (1,size), (1,strd), padding=pad_u, name="G_UpConv-2"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-2"),
   tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-2"),
   
   # (256, 256) --> (1024, 128)
-  tf.keras.layers.Conv2DTranspose(filt*fmult//8, (1,size), (1,strd), padding=pad, name="G_UpConv-3"),
+  tf.keras.layers.Conv2DTranspose(
+    filt*fmult//8, (1,size), (1,strd), padding=pad_u, name="G_UpConv-3"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-3"),
   tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-3"),
   
   # (1024, 128) --> (4096, 64)
-  tf.keras.layers.Conv2DTranspose(filt*fmult//16, (1,size), (1,strd), padding=pad, name="G_UpConv-4"),
+  tf.keras.layers.Conv2DTranspose(
+    filt*fmult//16, (1,size), (1,strd), padding=pad_u, name="G_UpConv-4"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-4"),
   tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-4"),
   
   # (4096, 64) --> (16384,1)
-  tf.keras.layers.Conv2DTranspose(1, (1,size), (1,strd), padding=pad, name="G_UpConv-5", activation=activations.tanh)
+  tf.keras.layers.Conv2DTranspose(
+    1, (1,size), (1,strd), padding=pad_u, name="G_UpConv-5", activation=activations.tanh)
 
   ], name="Generator")
 
@@ -231,31 +215,31 @@ D = tf.keras.models.Sequential([
   tf.keras.Input(shape=DIMS, name="D_Input"),
 
   # (16384,1) --> (4096, 64)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-1"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-1"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-1"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-1"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-1"),
 
   # (4096, 64) --> (1024, 128)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-2"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-2"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-2"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-2"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-2"),
 
   # (1024, 128) --> (256, 256)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-3"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-3"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-3"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-3"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-3"),
 
   # (256, 256) --> (64, 512)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-4"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-4"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-4"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-4"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-4"),
   
   # (64, 512) --> (16, 1024)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-5"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-5"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-5"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-5"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-5"),
@@ -277,17 +261,16 @@ D_opt = tf.keras.optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 # paths and filenames
 #------------------------------------------------------------------------------
 
-
-job_suffix = sys.argv[1]
-db = "sc09"
+job = str(sys.argv[1])
+db  = "sc09"
 
 if True:
   # in node
   PATH_NODE    = Path("/users/PAS1309/fdch")
   PATH_TRAIN   = PATH_NODE / db / "train"
   PATH_TEST    = PATH_NODE / db / "test"
-  PATH_MODEL   = PATH_NODE / "kwgan" / "saved_model"
-  PATH_AUDIO   = PATH_NODE / "kwgan" / "audio" 
+  PATH_MODEL   = PATH_NODE / "kwgan" / f"{job}-train-{db}" / "saved_model" 
+  PATH_AUDIO   = PATH_NODE / "kwgan" / f"{job}-train-{db}" / "audio" 
 else:
   # in colab
   PATH_TRAIN  = f"/content/drive/MyDrive/Datasets/{db}/train"
@@ -295,6 +278,9 @@ else:
   PATH_MODEL  = "/content/saved_model"
   PATH_AUDIO  = "/content/audio"
 
+#------------------------------------------------------------------------------
+# Making datasets
+#------------------------------------------------------------------------------
 
 print("-"*80)
 print("Making datasets...")
@@ -339,6 +325,24 @@ G.summary()
 CHECKPOINT = tf.train.Checkpoint(G_opt=G_opt, D_opt=D_opt, G=G, D=D)
 
 #------------------------------------------------------------------------------
+# # set allow growth flag 
+# # issue here https://github.com/tensorflow/tensorflow/issues/36025
+# # and https://www.tensorflow.org/guide/gpu#limiting_gpu_memory_growth
+# #------------------------------------------------------------------------------
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    # Currently, memory growth needs to be the same across GPUs
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    tf.print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Memory growth must be set before GPUs have been initialized
+    tf.print(e)
+
+#------------------------------------------------------------------------------
 # fit
 #------------------------------------------------------------------------------
 
@@ -369,8 +373,8 @@ for epoch in range(EPOCHS):
     G_loss, D_loss = test_step(x)
     test_loss.append([G_loss, D_loss])
   
-  tr_loss = np.array(np.mean(train_loss, axis=0))
-  te_loss = np.array(np.mean(test_loss,  axis=0))
+  tr_loss = tf.reduce_mean(train_loss, axis=0).numpy()
+  te_loss = tf.reduce_mean(test_loss,  axis=0).numpy()
   
   # save the model at save interval (not 0)
   if epoch % SAVE_INTERVAL  == 0:
