@@ -212,7 +212,7 @@ G = tf.keras.models.Sequential([
 
 D = tf.keras.models.Sequential([
   tf.keras.Input(shape=DIMS, name="D_Input"),
-  tf.keras.layers.Reshape([DIMS], name="D_Reshape_Input"),
+  tf.keras.layers.Reshape(DIMS, name="D_Reshape_Input"),
 
   # (16384,1) --> (4096, 64)
   tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-1"),
