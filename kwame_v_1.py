@@ -306,7 +306,7 @@ test_files  = tf.random.shuffle(test_files)
 
 # make the dataset from tensor slices
 train_files_ds = tf.data.Dataset.from_tensor_slices(train_files)
-test_files_ds  = tf.data.Dataset.from_tensor_slices(test_files[:ts_split])
+test_files_ds  = tf.data.Dataset.from_tensor_slices(test_files)
 
 # map the function to read filenames into decoded arrays
 
