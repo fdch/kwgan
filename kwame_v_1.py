@@ -91,7 +91,7 @@ def D_step(x):
 
 @tf.function
 def train_step(x):
-    with tf.GradientTape(persistemt=True) as tape:
+    with tf.GradientTape(persistent=True) as tape:
         G_loss, D_loss, z = step(x)
 
     G_g = tape.gradient(G_loss, G.trainable_variables)
