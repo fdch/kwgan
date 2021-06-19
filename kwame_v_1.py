@@ -60,7 +60,7 @@ def D_lossFun(x, z):
 
     x_hat = epsilon * x + (1 - epsilon) 
     
-    gen = G(z)
+    gen = G(z, training=False)
     
     x_hat *= gen 
     d_hat = D(x_hat)
