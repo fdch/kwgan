@@ -349,7 +349,7 @@ if gpus:
 #------------------------------------------------------------------------------
 
 print("="*80)
-print(f"Begin at {start_time}")
+print(f"Begin at {START_TIME}")
 print("="*80)
 
 print("Epoch, Tst_Dl, Tst_Gl, Trn_Dl, Trn_Gl, Time")
