@@ -169,10 +169,10 @@ G = tf.keras.models.Sequential([
   tf.keras.Input(shape=(LATENT_DIM,), name="G_Input"),
 
   # (LATENT_DIM,1) -> (16384, 1)
-  tf.keras.layers.Dense(4 * 4 * filt * fmult, activation='relu', name="G_Dense"),
+  tf.keras.layers.Dense(4*4*filt*fmult, activation='relu', name="G_Dense"),
   
-  # (16384, 1) -> [BATCH_SIZE, 16, 1024]
-  tf.keras.layers.Reshape([16, filt * fmult], name="G_Reshape_Input"),
+  # (16384, 1) -> [BATCH_SIZE, nchannels=1, 16, 1024]
+  tf.keras.layers.Reshape([1, 16, filt * fmult], name="G_Reshape_Input"),
   # batch size is assumed heretofore
   # (16, 1024) --> (64, 512)
   tf.keras.layers.Conv2DTranspose(
