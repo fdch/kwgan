@@ -51,7 +51,7 @@ class PhaseShuffle(tf.keras.layers.Layer):
 #------------------------------------------------------------------------------
 
 @tf.function
-def G_loss(z):
+def G_lossFun(z):
     # tf.print("*"*80)
     # tf.print("Generator Loss")
     # tf.print("*"*80)
@@ -62,7 +62,7 @@ def G_loss(z):
     return gen_loss
 
 @tf.function
-def D_loss(x, z):
+def D_lossFun(x, z):
     # tf.print("_"*80)
     # tf.print("Discriminator Loss")
     # tf.print("_"*80)
@@ -93,15 +93,15 @@ def D_loss(x, z):
 @tf.function
 def step(x):
     z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
-    D_loss = D_loss(x, z)
-    G_loss = G_loss(z)
+    D_loss = D_lossFun(x, z)
+    G_loss = G_lossFun(z)
     return G_loss, D_loss
 
 @tf.function
 def D_step(x):
     z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
     with tf.GradientTape() as D_tape:
-        D_loss = D_loss(x, z)
+        D_loss = D_lossFun(x, z)
 
     D_g = D_tape.gradient(D_loss, D.trainable_variables)
     D_opt.apply_gradients(zip(D_g, D.trainable_variables))
