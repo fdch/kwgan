@@ -60,7 +60,7 @@ def D_lossFun(x, z):
 
     gen = G(z)
     x_hat = epsilon * x + (1 - epsilon) * tf.squeeze(gen) 
-    d_hat = D(tf.expand_dims(x_hat, axis=0))
+    d_hat = D(tf.expand_dims(x_hat, axis=-1))
 
     ddx = tf.gradients(d_hat, x_hat)[0]
     ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
