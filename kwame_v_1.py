@@ -62,17 +62,15 @@ def D_lossFun(x, z):
     
     gen = G(z)
     
-    x_hat *= tf.squeeze(gen) 
-    d_hat = D(tf.expand_dims(x_hat,axis=-1))
+    x_hat *= gen
+    
+    d_hat = D(x_hat)
 
     ddx = tf.gradients(d_hat, x_hat)[0]
     ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
     ddx = tf.reduce_mean(tf.square(ddx - 1.0))
-    
-    fake = D(gen)
-    real = D(x)
 
-    return (tf.reduce_mean(real) - tf.reduce_mean(fake) + LAMBDA) * ddx
+    return (tf.reduce_mean(D(x)) - tf.reduce_mean(D(gen)) + LAMBDA) * ddx
 
 #------------------------------------------------------------------------------
 # steps
