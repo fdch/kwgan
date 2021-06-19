@@ -27,10 +27,11 @@ def get_waveform(file_path):
 
 class PhaseShuffle(tf.keras.layers.Layer):
 
-  def __init__(self, rad=2, pad_type='reflect'):
+  def __init__(self, rad=2, pad_type='reflect', name='PhaseShuffle'):
     super(PhaseShuffle, self).__init__()
     self.rad = rad
     self.pad_type = pad_type
+    self.name = name
 
   def build(self, shape):
     ph_init = tf.random_uniform_initializer(minval=-rad, maxval=rad+1)
