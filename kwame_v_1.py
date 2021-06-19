@@ -339,7 +339,6 @@ DS_TEST  = DS_TEST.batch(BATCH_SIZE).cache().prefetch(AUTOTUNE)
 
 print(f"Done making datasets in {time.time()-START_TIME} seconds.")
 
-
 D.summary()
 G.summary()
 
