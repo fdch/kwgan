@@ -53,13 +53,13 @@ class PhaseShuffle(tf.keras.layers.Layer):
 @tf.function
 def D_lossFun(x, z):
     
-    gen = G(z)
 
     epsilon = tf.random.uniform(
-      shape=gen.shape, 
+      shape=[x.shape[1],x.shape[2]], 
       minval=0., 
       maxval=1.)
 
+    gen = G(z)
     x_hat = epsilon * tf.squeeze(x) + (1 - epsilon) * gen
     d_hat = D(x_hat)
 
