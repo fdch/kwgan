@@ -55,7 +55,7 @@ def D_lossFun(x, z):
     
 
     epsilon = tf.random.uniform(
-      shape=[x.shape[1],x.shape[2]], 
+      shape=[x.shape[0],x.shape[1]], 
       minval=0., 
       maxval=1.)
 
