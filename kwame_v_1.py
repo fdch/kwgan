@@ -145,7 +145,7 @@ strd   = 4   # strides
 moment = 0.8 # momentum for the moving avg of the batch normalization
 alpha  = 0.2 # leaky relu alpha parameter
 rad    = 2   # range for phase shuffling (-rad, rad+1)
-pad_d  = 'same'    # padding for down (1d) convolution layers
+pad_d  = 'causal'  # padding for down (1d) convolution layers
 pad_u  = 'same'    # padding for up (2dtranspose) convolution layers
 pad_s  = 'reflect' # padding type for phase shuffling
 
@@ -211,7 +211,8 @@ G = tf.keras.models.Sequential([
 
 
 D = tf.keras.models.Sequential([
-  tf.keras.Input(shape=(DIMS[0],DIMS[1]), name="D_Input"),
+  tf.keras.Input(shape=DIMS, name="D_Input"),
+  tf.keras.layers.Reshape([DIMS], name="D_Reshape_Input"),
 
   # (16384,1) --> (4096, 64)
   tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-1"),
