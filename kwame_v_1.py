@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 import time, sys
-import tensorflow as tf
 import numpy as np 
 import scipy.io.wavfile as wav
 import glob
 
 from pathlib import Path
-from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras import models
-from tensorflow.keras import activations
-from tensorflow.keras.optimizers import RMSprop, Adam
-
+import tensorflow as tf
 #------------------------------------------------------------------------------
 # Making datasets
 #------------------------------------------------------------------------------
@@ -53,7 +47,7 @@ if gpus:
 # PhaseShuffle Class
 #------------------------------------------------------------------------------
 
-class PhaseShuffle(layers.Layer):
+class PhaseShuffle(tf.keras.layers.Layer):
 
   def __init__(self, rad=2, pad_type='reflect'):
     super(PhaseShuffle, self).__init__()
@@ -194,36 +188,36 @@ if 4 * 4 * filt * fmult != DIMS[0]:
 #------------------------------------------------------------------------------
 
 G = models.Sequential([
-  layers.InputLayer(shape=(LATENT_DIM,), name="G_Input"),
+  tf.keras.Input(shape=(LATENT_DIM,), name="G_Input"),
 
   # (LATENT_DIM,1) -> (16384, 1)
-  layers.Dense(4 * 4 * filt * fmult, activation='relu', name="G_Dense"),
+  tf.keras.layers.Dense(4 * 4 * filt * fmult, activation='relu', name="G_Dense"),
   
   # (16384, 1) -> [BATCH_SIZE, 16, 1024]
-  layers.Reshape([BATCH_SIZE, 16, filt * fmult], name="G_Reshape_Input"),
+  tf.keras.layers.Reshape([BATCH_SIZE, 16, filt * fmult], name="G_Reshape_Input"),
   # batch size is assumed heretofore
   # (16, 1024) --> (64, 512)
-  layers.Conv2DTranspose(filt*fmult//2, (1,size), (1,strd), padding=pad, name="G_UpConv-1"),
-  layers.BatchNormalization(momentum=moment,name="G_Norm-1"),
-  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-1"),
+  tf.keras.layers.Conv2DTranspose(filt*fmult//2, (1,size), (1,strd), padding=pad, name="G_UpConv-1"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-1"),
+  tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-1"),
   
   # (64, 512) --> (256, 256)
-  layers.Conv2DTranspose(filt*fmult//4, (1,size), (1,strd), padding=pad, name="G_UpConv-2"),
-  layers.BatchNormalization(momentum=moment,name="G_Norm-2"),
-  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-2"),
+  tf.keras.layers.Conv2DTranspose(filt*fmult//4, (1,size), (1,strd), padding=pad, name="G_UpConv-2"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-2"),
+  tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-2"),
   
   # (256, 256) --> (1024, 128)
-  layers.Conv2DTranspose(filt*fmult//8, (1,size), (1,strd), padding=pad, name="G_UpConv-3"),
-  layers.BatchNormalization(momentum=moment,name="G_Norm-3"),
-  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-3"),
+  tf.keras.layers.Conv2DTranspose(filt*fmult//8, (1,size), (1,strd), padding=pad, name="G_UpConv-3"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-3"),
+  tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-3"),
   
   # (1024, 128) --> (4096, 64)
-  layers.Conv2DTranspose(filt*fmult//16, (1,size), (1,strd), padding=pad, name="G_UpConv-4"),
-  layers.BatchNormalization(momentum=moment,name="G_Norm-4"),
-  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-4"),
+  tf.keras.layers.Conv2DTranspose(filt*fmult//16, (1,size), (1,strd), padding=pad, name="G_UpConv-4"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="G_Norm-4"),
+  tf.keras.layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-4"),
   
   # (4096, 64) --> (16384,1)
-  layers.Conv2DTranspose(1, (1,size), (1,strd), padding=pad, name="G_UpConv-5", activation=activations.tanh)
+  tf.keras.layers.Conv2DTranspose(1, (1,size), (1,strd), padding=pad, name="G_UpConv-5", activation=activations.tanh)
 
   ], name="Generator")
 
@@ -234,39 +228,39 @@ G = models.Sequential([
 
 
 D = models.Sequential([
-  layers.InputLayer(shape=DIMS, name="D_Input"),
+  tf.keras.Input(shape=DIMS, name="D_Input"),
 
   # (16384,1) --> (4096, 64)
-  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-1"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-1"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-1"),
-  layers.BatchNormalization(momentum=moment,name="D_Norm-1"),
-  layers.LeakyReLU(alpha,name="D_leaky-1"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-1"),
+  tf.keras.layers.LeakyReLU(alpha,name="D_leaky-1"),
 
   # (4096, 64) --> (1024, 128)
-  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-2"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-2"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-2"),
-  layers.BatchNormalization(momentum=moment,name="D_Norm-2"),
-  layers.LeakyReLU(alpha,name="D_leaky-2"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-2"),
+  tf.keras.layers.LeakyReLU(alpha,name="D_leaky-2"),
 
   # (1024, 128) --> (256, 256)
-  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-3"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-3"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-3"),
-  layers.BatchNormalization(momentum=moment,name="D_Norm-3"),
-  layers.LeakyReLU(alpha,name="D_leaky-3"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-3"),
+  tf.keras.layers.LeakyReLU(alpha,name="D_leaky-3"),
 
   # (256, 256) --> (64, 512)
-  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-4"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-4"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-4"),
-  layers.BatchNormalization(momentum=moment,name="D_Norm-4"),
-  layers.LeakyReLU(alpha,name="D_leaky-4"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-4"),
+  tf.keras.layers.LeakyReLU(alpha,name="D_leaky-4"),
   
   # (64, 512) --> (16, 1024)
-  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-5"),
+  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-5"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-5"),
-  layers.BatchNormalization(momentum=moment,name="D_Norm-5"),
-  layers.LeakyReLU(alpha,name="D_leaky-5"),
+  tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-5"),
+  tf.keras.layers.LeakyReLU(alpha,name="D_leaky-5"),
 
-  layers.Dense(1, name="D_DenseLogit")
+  tf.keras.layers.Dense(1, name="D_DenseLogit")
 
   ], name="Discriminator")
 
@@ -275,8 +269,8 @@ D = models.Sequential([
 # Adam optimizer with parameters from WAVEGAN
 #------------------------------------------------------------------------------
 
-G_opt = optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)   
-D_opt = optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
+G_opt = tf.keras.optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)   
+D_opt = tf.keras.optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 
 
 #------------------------------------------------------------------------------
