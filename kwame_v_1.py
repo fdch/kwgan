@@ -35,17 +35,16 @@ class PhaseShuffle(tf.keras.layers.Layer):
   def build(self, shape):
     ph_init = tf.random_uniform_initializer(minval=-rad, maxval=rad+1)
     self.x_len = shape[1]
-    self.phase = tf.Variable(ph_init(shape=[self.x_len],dtype=tf.int32))
+    self.phase = tf.Variable(ph_init(shape=[],dtype=tf.int32))
     self.pad_l = tf.maximum(self.phase, 0)
     self.pad_r = tf.maximum(-self.phase, 0)
     self.phase_start = self.pad_r
 
   def call(self, inputs):  # Defines the computation from inputs to outputs
-    out = tf.pad(inputs, 
-          [ [0,0], [self.pad_l, self.pad_r], [0,0] ], 
-          mode=self.pad_type)
+    pad = [ [self.pad_l, self.pad_r], [0, 0] ]
+    out = tf.pad(inputs, paddings=pad, mode=self.pad_type)
 
-    return out[:, self.phase_start:self.phase_start+self.x_len]
+    return out[self.phase_start:self.phase_start+self.x_len,:]
 
 #------------------------------------------------------------------------------
 # loss functions
