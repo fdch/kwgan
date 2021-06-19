@@ -212,7 +212,7 @@ G = tf.keras.models.Sequential([
 
 D = tf.keras.models.Sequential([
   tf.keras.Input(shape=DIMS, name="D_Input"),
-  tf.keras.layers.Reshape(DIMS, name="D_Reshape_Input"),
+  # tf.keras.layers.Reshape(DIMS, name="D_Reshape_Input"),
 
   # (16384,1) --> (4096, 64)
   tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-1"),
@@ -221,25 +221,25 @@ D = tf.keras.models.Sequential([
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-1"),
 
   # (4096, 64) --> (1024, 128)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-2"),
+  tf.keras.layers.Conv1D(filt*2, size, strides=strd, padding=pad_d, name="D_DownConv-2"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-2"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-2"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-2"),
 
   # (1024, 128) --> (256, 256)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-3"),
+  tf.keras.layers.Conv1D(filt*4, size, strides=strd, padding=pad_d, name="D_DownConv-3"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-3"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-3"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-3"),
 
   # (256, 256) --> (64, 512)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-4"),
+  tf.keras.layers.Conv1D(filt*8, size, strides=strd, padding=pad_d, name="D_DownConv-4"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-4"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-4"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-4"),
   
   # (64, 512) --> (16, 1024)
-  tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-5"),
+  tf.keras.layers.Conv1D(filt*16, size, strides=strd, padding=pad_d, name="D_DownConv-5"),
   PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-5"),
   tf.keras.layers.BatchNormalization(momentum=moment,name="D_Norm-5"),
   tf.keras.layers.LeakyReLU(alpha,name="D_leaky-5"),
