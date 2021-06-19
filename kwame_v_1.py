@@ -187,7 +187,7 @@ if 4 * 4 * filt * fmult != DIMS[0]:
 # Generator model
 #------------------------------------------------------------------------------
 
-G = models.Sequential([
+G = tf.keras.models.Sequential([
   tf.keras.Input(shape=(LATENT_DIM,), name="G_Input"),
 
   # (LATENT_DIM,1) -> (16384, 1)
@@ -227,7 +227,7 @@ G = models.Sequential([
 #------------------------------------------------------------------------------
 
 
-D = models.Sequential([
+D = tf.keras.models.Sequential([
   tf.keras.Input(shape=DIMS, name="D_Input"),
 
   # (16384,1) --> (4096, 64)
