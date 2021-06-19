@@ -16,12 +16,14 @@ import scipy.io.wavfile as wav
 import glob
 from pathlib import Path
 from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras import models
-from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, Lambda
-from tensorflow.keras.layers import BatchNormalization, Activation, LeakyReLU
-from tensorflow.keras.layers import UpSampling1D, Conv1D, UpSampling2D, Conv2DTranspose
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras import layers as kl
+from tensorflow.keras import models as km
+from tensorflow.keras import activations as ka
+
+# from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, Lambda
+# from tensorflow.keras.layers import BatchNormalization, Activation, LeakyReLU
+# from tensorflow.keras.layers import UpSampling1D, Conv1D, UpSampling2D, Conv2DTranspose
+# from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.optimizers import RMSprop, Adam
 
 #------------------------------------------------------------------------------
@@ -49,6 +51,27 @@ DATABASE = 5 #percentage of the database
 LAMBDA = 10
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
+# WaveGAN arquitecture
+
+filt   = 64  # dimension of the filters
+fmult  = 16  # filter dimension multiplier
+size   = 25  # size or length of the kernel
+strd   = 4   # strides
+moment = 0.8 # momentum for the moving avg of the batch normalization
+alpha  = 0.2 # leaky relu alpha parameter
+rad    = 2   # range for phase shuffling (-rad, rad+1)
+pad    = 'causal'  # pading for up/down convolution layers
+pad_s  = 'reflect' # padding type for phase shuffling
+
+# parameters for the generator's relu activation
+relu = {
+  "max": None, 
+  "slope":0,
+  "thresh":0
+}
+
+if 4 * 4 * filt * fmult != DIMS[0]:
+  print("Warning, wrong dims.")
 #------------------------------------------------------------------------------
 # paths and filenames
 #------------------------------------------------------------------------------
@@ -159,94 +182,161 @@ def save_model(m, n):
     open(options['file_arch'], 'w').write(json_string)
     m.save_weights(options['file_weight'])
 
+
+
 #------------------------------------------------------------------------------
 # generator model
 #------------------------------------------------------------------------------
 
-def get_generator():
-  dim = wgan_dim
-  dim_mul = wgan_dim_mul
-  kernel_len = wgan_kernel_len
-  # Noise input
-  z = Input(shape=(LATENT_DIM,), name='noise')
-  output = z
-  # WaveGAN arquitecture
-  output = Dense(4*4*dim*dim_mul,activation='relu')(output)
-  output = Reshape([1,16, dim * dim_mul])(output)
-  # output = BatchNormalization()(output)
-  dim_mul //= 2
-  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
-  # output = BatchNormalization()(output)
-  output = tf.nn.relu(output)
-  dim_mul //= 2
-  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
-  # output = BatchNormalization()(output)
-  output = tf.nn.relu(output)
-  dim_mul //= 2
-  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
-  # output = BatchNormalization()(output)
-  output = tf.nn.relu(output)
-  dim_mul //= 2
-  output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
-  # output = BatchNormalization()(output)
-  output = tf.nn.relu(output)
-  output = Conv2DTranspose(1, (1,kernel_len), (1,4), padding='same')(output)
-  output = tf.nn.tanh(output)
-  output = Reshape(DIMS)(output)
+generator = models.Sequential([
+  layers.InputLayer(shape=(LATENT_DIM,), name="G_Input"),
 
-  return tf.keras.Model(z, output)
+  # (LATENT_DIM,1) -> (16384, 1)
+  layers.Dense(4 * 4 * filt * fmult, activation='relu', name="G_Dense"),
+  
+  # (16384, 1) -> [BATCH_SIZE, 16, 1024]
+  layers.Reshape([BATCH_SIZE, 16, filt * fmult], name="G_Reshape_Input"),
+  # batch size is assumed heretofore
+  # (16, 1024) --> (64, 512)
+  layers.Conv2DTranspose(filt*fmult//2, (1,size), (1,strd), padding=pad, name="G_UpConv-1"),
+  layers.BatchNormalization(momentum=moment,name="G_Norm-1"),
+  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-1"),
+  
+  # (64, 512) --> (256, 256)
+  layers.Conv2DTranspose(filt*fmult//4, (1,size), (1,strd), padding=pad, name="G_UpConv-2"),
+  layers.BatchNormalization(momentum=moment,name="G_Norm-2"),
+  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-2"),
+  
+  # (256, 256) --> (1024, 128)
+  layers.Conv2DTranspose(filt*fmult//8, (1,size), (1,strd), padding=pad, name="G_UpConv-3"),
+  layers.BatchNormalization(momentum=moment,name="G_Norm-3"),
+  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-3"),
+  
+  # (1024, 128) --> (4096, 64)
+  layers.Conv2DTranspose(filt*fmult//16, (1,size), (1,strd), padding=pad, name="G_UpConv-4"),
+  layers.BatchNormalization(momentum=moment,name="G_Norm-4"),
+  layers.ReLU(max_value=relu['max'], negative_slope=relu['slope'], threshold=relu['thresh'], name="G_Relu-4"),
+  
+  # (4096, 64) --> (16384,1)
+  layers.Conv2DTranspose(1, (1,size), (1,strd), padding=pad, name="G_UpConv-5", activation=ka.tanh)
+
+  ], name="Generator")
+
+
+
+# def get_generator():
+#   dim = wgan_dim
+#   dim_mul = wgan_dim_mul
+#   kernel_len = wgan_kernel_len
+#   # Noise input
+#   z = Input(shape=(LATENT_DIM,), name='noise')
+#   output = z
+#   # WaveGAN arquitecture
+#   output = Dense(4*4*dim*dim_mul,activation='relu')(output)
+#   output = Reshape([1,16, dim * dim_mul])(output)
+#   # output = BatchNormalization()(output)
+#   dim_mul //= 2
+#   output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+#   # output = BatchNormalization()(output)
+#   output = tf.nn.relu(output)
+#   dim_mul //= 2
+#   output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+#   # output = BatchNormalization()(output)
+#   output = tf.nn.relu(output)
+#   dim_mul //= 2
+#   output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+#   # output = BatchNormalization()(output)
+#   output = tf.nn.relu(output)
+#   dim_mul //= 2
+#   output = Conv2DTranspose(dim * dim_mul, (1,kernel_len), (1,4), padding='same')(output)
+#   # output = BatchNormalization()(output)
+#   output = tf.nn.relu(output)
+#   output = Conv2DTranspose(1, (1,kernel_len), (1,4), padding='same')(output)
+#   output = tf.nn.tanh(output)
+#   output = Reshape(DIMS)(output)
+
+#   return tf.keras.Model(z, output, name="Generator")
 
 #------------------------------------------------------------------------------
 # phaseshuffle = lambda x: apply_phaseshuffle(x)
 #------------------------------------------------------------------------------
 
-def phaseshuffle(x, rad=2, pad_type='reflect'):
-  b, x_len, nch = x.get_shape().as_list()
+# def phaseshuffle(x, rad=2, pad_type='reflect'):
+#   b, x_len, nch = x.get_shape().as_list()
 
-  phase = tf.random.uniform([], minval=-rad, maxval=rad + 1, dtype=tf.int32)
-  pad_l = tf.maximum(phase, 0)
-  pad_r = tf.maximum(-phase, 0)
-  phase_start = pad_r
-  x = tf.pad(x, [[0, 0], [pad_l, pad_r], [0, 0]], mode=pad_type)
-  x = x[:, phase_start:phase_start+x_len]
-  x.set_shape([b, x_len, nch])
+#   phase = tf.random.uniform([], minval=-rad, maxval=rad + 1, dtype=tf.int32)
+#   pad_l = tf.maximum(phase, 0)
+#   pad_r = tf.maximum(-phase, 0)
+#   phase_start = pad_r
+#   x = tf.pad(x, [[0, 0], [pad_l, pad_r], [0, 0]], mode=pad_type)
+#   x = x[:, phase_start:phase_start+x_len]
+#   x.set_shape([b, x_len, nch])
 
-  return x
+#   return x
+
+class PhaseShuffle(kl.Layer):
+
+  def __init__(self, rad=2, pad_type='reflect'):
+    super(PhaseShuffle, self).__init__()
+    self.rad = rad
+    self.pad_type = pad_type
+
+  def build(self, shape):
+    ph_init = tf.random_uniform_initializer(minval=-rad, maxval=rad+1)
+    self.phase = tf.Variable(ph_init(shape=shape[-1],dtype=tf.int32))
+    self.pad_l = tf.maximum(self.phase, 0)
+    self.pad_r = tf.maximum(-self.phase, 0)
+    self.phase_start = self.pad_r
+    self.x_len = shape[1]
+
+  def call(self, inputs):  # Defines the computation from inputs to outputs
+    out = tf.pad(inputs, 
+          [[0,0], [self.pad_l, self.pad_r], [0,0]], 
+          mode=self.pad_type)
+
+    return out[:, self.phase_start:self.phase_start+self.x_len]
 
 #------------------------------------------------------------------------------
 # discriminator model
 #------------------------------------------------------------------------------
 
-def get_discriminator():
-  dim = wgan_dim
-  kernel_len = wgan_kernel_len
-  # Noise input
-  x = Input(shape=DIMS, name='audio')
-  output = x
-  output = Reshape(target_shape=DIMS)(output)
-  # WaveGAN arquitecture
-  output = Conv1D(dim, kernel_len, 4, padding='SAME')(output)
-  output = phaseshuffle(output)
-    # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
-  output = Conv1D(dim*2, kernel_len, 4, padding='SAME')(output)
-  output = phaseshuffle(output)
-    # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
-  output = Conv1D(dim*4, kernel_len, 4, padding='SAME')(output)
-  output = phaseshuffle(output)
-    # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
-  output = Conv1D(dim*8, kernel_len, 4, padding='SAME')(output)
-  #   # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
-  output = Conv1D(dim*16, kernel_len, 4, padding='SAME')(output)
-    # output = BatchNormalization()(output)
-  output = tf.nn.leaky_relu(output)
-  output = Reshape(target_shape=DIMS)(output)
-  output = Dense(1)(output)
 
-  return tf.keras.Model(x, output)
+discriminator = models.Sequential([
+  layers.InputLayer(shape=DIMS, name="D_Input"),
+
+  # (16384,1) --> (4096, 64)
+  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-1"),
+  PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-1"),
+  layers.BatchNormalization(momentum=moment,name="D_Norm-1"),
+  layers.LeakyReLU(alpha,name="D_leaky-1"),
+
+  # (4096, 64) --> (1024, 128)
+  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-2"),
+  PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-2"),
+  layers.BatchNormalization(momentum=moment,name="D_Norm-2"),
+  layers.LeakyReLU(alpha,name="D_leaky-2"),
+
+  # (1024, 128) --> (256, 256)
+  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-3"),
+  PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-3"),
+  layers.BatchNormalization(momentum=moment,name="D_Norm-3"),
+  layers.LeakyReLU(alpha,name="D_leaky-3"),
+
+  # (256, 256) --> (64, 512)
+  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-4"),
+  PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-4"),
+  layers.BatchNormalization(momentum=moment,name="D_Norm-4"),
+  layers.LeakyReLU(alpha,name="D_leaky-4"),
+  
+  # (64, 512) --> (16, 1024)
+  layers.Conv1D(filt, size, strides=strd, padding=pad, name="D_DownConv-5"),
+  PhaseShuffle(rad=rad, pad_type=pad_s, name="D_PhaseShuffle-5"),
+  layers.BatchNormalization(momentum=moment,name="D_Norm-5"),
+  layers.LeakyReLU(alpha,name="D_leaky-5"),
+
+  layers.Dense(1, name="D_DenseLogit")
+
+  ], name="Discriminator")
 
 #------------------------------------------------------------------------------
 # # set allow growth flag 
@@ -270,13 +360,6 @@ if gpus:
 # build models
 #------------------------------------------------------------------------------
 
-generator = get_generator()
-discriminator = get_discriminator()
-
-# Adam optimizer with parameters from WAVEGAN
-generator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)   
-discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
-
 #------------------------------------------------------------------------------
 # loss functions
 #------------------------------------------------------------------------------
@@ -287,7 +370,7 @@ def generator_loss(z):
     # tf.print("Generator Loss")
     # tf.print("*"*80)
     # tf.print("Input shape: ", z.shape)
-    fake = discriminator(generator(z))
+    fake = discriminator(generator(z, training=False), training=False)
     # tf.print("Fake disc shape: ", fake.shape)
     gen_loss = -tf.reduce_mean(fake)
     return gen_loss
@@ -297,22 +380,33 @@ def discriminator_loss(x, z):
     # tf.print("_"*80)
     # tf.print("Discriminator Loss")
     # tf.print("_"*80)
-    epsilon = tf.random.uniform(shape=(x.shape[0], x.shape[1]), minval=0., maxval=1.)
+    epsilon = tf.random.uniform(
+      shape=(x.shape[0], x.shape[1]), 
+      minval=0., 
+      maxval=1.)
     # tf.print("epsilon shape:", epsilon.shape)
-    gen = generator(z)
+    gen = generator(z, training=False)
     # tf.print("generated shape:", gen.shape)
     x_hat = epsilon * x + (1 - epsilon) * gen[:,0] 
     # tf.print("x_hat shape:", x_hat.shape)
-    d_hat = discriminator(x_hat)
+    d_hat = discriminator(x_hat, training=False)
     # tf.print("d_hat shape:", d_hat.shape)
     ddx = tf.gradients(d_hat, x_hat)[0]
     ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
     ddx = tf.reduce_mean(tf.square(ddx - 1.0))
     # tf.print("ddx shape", ddx.shape)
-    fake = discriminator(generator(z))
-    real = discriminator(x)
+    fake = discriminator(generator(z, training=False), training=False)
+    real = discriminator(x, training=False)
     dis_loss = (tf.reduce_mean(real) - tf.reduce_mean(fake) + LAMBDA) * ddx
     return dis_loss
+
+
+
+
+# Adam optimizer with parameters from WAVEGAN
+generator_optimizer     = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)   
+discriminator_optimizer = Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
+
 
 #------------------------------------------------------------------------------
 # GAN training step
@@ -335,10 +429,10 @@ def step(x):
     z = tf.random.normal(shape=(x.shape[0], LATENT_DIM))
     # tf.print("Latent Z Shape: ", z.shape)
     # discriminating the real audio
-    real = discriminator(x)
+    real = discriminator(x, training=True)
     # tf.print("Real Disc Shape: ", real.shape)
     # discriminating the generated audio (fake)
-    fake = discriminator(generator(z))
+    fake = discriminator(generator(z, training=True), training=True)
     # tf.print("Fake Disc Shape: ", fake.shape)
     # take the losses
     gen_loss = generator_loss(z)
@@ -358,7 +452,7 @@ def train_step(x):
     generator_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
     discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
 
-    return disc_loss,gen_loss
+    return disc_loss, gen_loss
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -393,10 +487,8 @@ def fit(train_ds, epochs, test_ds):
       train_loss.append([disc_loss, gen_loss])
 
     for audio_batch in test_ds:
-      z = tf.random.normal([audio_batch.shape[0], LATENT_DIM])
-      generated, real = generator(z), discriminator(audio_batch)
-      fake = discriminator(generated)
-      disc_loss = discriminator_loss(real, fake, generated)
+      z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
+      disc_loss = discriminator_loss(audio_batch, z)
       gen_loss = generator_loss(z)
       test_loss.append([disc_loss, gen_loss])
     
