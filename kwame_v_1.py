@@ -8,7 +8,7 @@ from pathlib import Path
 def decode_audio(audio_binary, file_path):
     audio, sr = tf.audio.decode_wav(audio_binary)
     if sr != SAMPLERATE:
-      print(f"Warning:{file_path} is not at {SAMPLERATE}, but at {sr} Hz")
+      tf.print(f"Warning:{file_path.numpy()} is not at {SAMPLERATE}, but at {sr.numpy()} Hz")
     audio = tf.squeeze(audio, axis=-1)
     pad = (1 + DIMS[0] - len(audio)) // 2
     if pad > 0:
@@ -172,7 +172,7 @@ G = tf.keras.models.Sequential([
   tf.keras.layers.Dense(4 * 4 * filt * fmult, activation='relu', name="G_Dense"),
   
   # (16384, 1) -> [BATCH_SIZE, 16, 1024]
-  tf.keras.layers.Reshape([BATCH_SIZE, 16, filt * fmult], name="G_Reshape_Input"),
+  tf.keras.layers.Reshape([16, filt * fmult], name="G_Reshape_Input"),
   # batch size is assumed heretofore
   # (16, 1024) --> (64, 512)
   tf.keras.layers.Conv2DTranspose(
@@ -211,7 +211,7 @@ G = tf.keras.models.Sequential([
 
 
 D = tf.keras.models.Sequential([
-  tf.keras.Input(shape=DIMS, name="D_Input"),
+  tf.keras.Input(shape=(DIMS), name="D_Input"),
 
   # (16384,1) --> (4096, 64)
   tf.keras.layers.Conv1D(filt, size, strides=strd, padding=pad_d, name="D_DownConv-1"),
