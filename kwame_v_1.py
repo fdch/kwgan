@@ -291,8 +291,8 @@ Path(PATH_MODEL).mkdir(parents=True, exist_ok=True)
 START_TIME = time.time()
 
 # find the filenames
-train_files = [ i for i in PATH_TRAIN.glob("/*.wav") ]
-test_files  = [ i for i in PATH_TEST.glob("/*.wav") ]
+train_files = [ i for i in PATH_TRAIN.glob("*.wav") ]
+test_files  = [ i for i in PATH_TEST.glob("*.wav") ]
 
 train_files = train_files[:len(train_files) // 100 * DB_PERCENT]
 test_files  = test_files[:len(test_files)   // 100 * DB_PERCENT]
