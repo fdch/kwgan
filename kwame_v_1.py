@@ -372,11 +372,11 @@ for epoch in range(EPOCHS):
       tf.print("Exporting audio files")
       generated = G(z0, training=False)
       for i, audio in enumerate(generated):
-        PATH_FILE = PATH_AUDIO / f"kw_aud-{str(epoch)}-{str(i)}.wav"
+        fname = f"kw_aud-{str(epoch)}-{str(i)}.wav"
+        PATH_FILE = PATH_AUDIO / fname
         file = PATH_FILE.resolve().as_posix()
-        a = tf.audio.encode_wav(audio, SAMPLERATE, name=f"EncodeAudio-{file}")
-        with open(file, 'w') as f:
-          f.write(a)
+        a = tf.audio.encode_wav(audio, SAMPLERATE, name=f"EncodeAudio-{fname}")
+        tf.io.write_file(file, a, name=f"WriteAudio-{file}")
   
   time_to_train_epoch = time.time() - start
   
