@@ -367,7 +367,7 @@ for epoch in range(EPOCHS):
   # save the model at save interval (not 0)
   if epoch % SAVE_INTERVAL  == 0:
     tf.print("Saving model checkpoint")
-    checkpoint.save(PATH_MODEL.resolve().as_posix())
+    CHECKPOINT.save(PATH_MODEL.resolve().as_posix())
     if epoch:
       tf.print("Exporting audio files")
       generated = G(z0, training=False)
