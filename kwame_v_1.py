@@ -4,7 +4,6 @@ import time, sys
 import tensorflow as tf
 import scipy.io.wavfile as wav
 from pathlib import Path
-import numpy as np
 
 def decode_audio(audio_binary, file_path):
     audio, sr = tf.audio.decode_wav(audio_binary)
