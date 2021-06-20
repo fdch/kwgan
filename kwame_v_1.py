@@ -375,7 +375,7 @@ for epoch in range(EPOCHS):
         PATH_FILE = PATH_AUDIO / f"kw_aud-{str(epoch)}-{str(i)}.wav"
         file = PATH_FILE.resolve().as_posix()
         a = tf.audio.encode_wav(audio, SAMPLERATE, name=f"EncodeAudio-{file}")
-        with open(file, 'wb') as f:
+        with open(file, 'w') as f:
           f.write(a)
   
   time_to_train_epoch = time.time() - start
