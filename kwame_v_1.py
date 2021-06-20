@@ -53,7 +53,7 @@ class PhaseShuffle(tf.keras.layers.Layer):
 
 @tf.function
 def D_lossFun(x, z):
-    return (tf.reduce_mean(D(x)) - tf.reduce_mean(D(G(z))))
+    return tf.reduce_mean(D(G(z))) - tf.reduce_mean(D(x))
 
     # epsilon = tf.random.uniform(
     #   shape=[x.shape[0],x.shape[1]], 
