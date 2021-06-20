@@ -4,6 +4,7 @@ import time, sys
 import tensorflow as tf
 import scipy.io.wavfile as wav
 from pathlib import Path
+import numpy as np
 
 def decode_audio(audio_binary, file_path):
     audio, sr = tf.audio.decode_wav(audio_binary)
@@ -374,7 +375,7 @@ for epoch in range(EPOCHS):
       generated *= 2**15
       for i, audio in enumerate(generated.numpy()):
         PATH_FILE = PATH_AUDIO / f"kw_aud-{str(epoch)}-{str(i)}.wav"
-        wav.write(PATH_FILE.resolve().as_posix(), SAMPLERATE, generated)
+        wav.write(PATH_FILE.resolve().as_posix(), SAMPLERATE, generated.astype(np.float32))
   
   time_to_train_epoch = time.time() - start
   
