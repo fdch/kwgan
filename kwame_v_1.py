@@ -77,7 +77,7 @@ def D_lossFun(x, z):
 def step(x):
     z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
     G_loss = -tf.reduce_mean(D(G(z)))
-    D_loss = D_lossFun(x)
+    D_loss = D_lossFun(x, z)
     return G_loss, D_loss
 
 @tf.function
