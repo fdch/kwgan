@@ -92,7 +92,7 @@ def D_step(x):
 @tf.function
 def train_step(x):
     with tf.GradientTape(persistent=True) as tape:
-        G_loss, D_loss, z = step(x)
+        G_loss, D_loss = step(x)
 
     G_g = tape.gradient(G_loss, G.trainable_variables)
     D_g = tape.gradient(D_loss, D.trainable_variables)
@@ -358,7 +358,7 @@ for epoch in range(EPOCHS):
     train_loss.append([G_loss, D_loss])
 
   for x in DS_TEST:
-    G_loss, D_loss = test_step(x)
+    G_loss, D_loss = step(x)
     test_loss.append([G_loss, D_loss])
   
   tr_loss = tf.reduce_mean(train_loss, axis=0).numpy()
