@@ -375,7 +375,8 @@ for epoch in range(EPOCHS):
       generated *= 2**15
       for i, audio in enumerate(generated.numpy()):
         PATH_FILE = PATH_AUDIO / f"kw_aud-{str(epoch)}-{str(i)}.wav"
-        wav.write(PATH_FILE.resolve().as_posix(), SAMPLERATE, generated.astype(np.float32))
+        file = PATH_FILE.resolve().as_posix()
+        wav.write(file, SAMPLERATE, audio.astype(np.float32))
   
   time_to_train_epoch = time.time() - start
   
