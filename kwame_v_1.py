@@ -52,8 +52,9 @@ class PhaseShuffle(tf.keras.layers.Layer):
 
 @tf.function
 def D_lossFun(x, z):
-    return tf.reduce_mean(D(G(z))) - tf.reduce_mean(D(x))
+    loss = tf.reduce_mean(D(G(z))) - tf.reduce_mean(D(x))
 
+    return loss
     # epsilon = tf.random.uniform(
     #   shape=[x.shape[0],x.shape[1]], 
     #   minval=0., 
@@ -96,7 +97,14 @@ def train_step(x):
 
     G_g = tape.gradient(G_loss, G.trainable_variables)
     D_g = tape.gradient(D_loss, D.trainable_variables)
-
+    t=0
+    for t in range(number_of_disc_layers):
+      y = tf.clip_by_value(
+        G.trainable_weights[t],
+        clip_value_min=-0.05,
+        clip_value_max=0.05,
+        name=None)
+      D.trainable_weights[t].assign(y)
     G_opt.apply_gradients(zip(G_g, G.trainable_variables))
     D_opt.apply_gradients(zip(D_g, D.trainable_variables))
 
@@ -115,8 +123,9 @@ SAMPLERATE = 16000  # Audio samplerate
 DIMS = (2**14, 1)   # Input dimensions - one sec file aprox (16384, 1)
 D_TRAIN = 5         # Number of times discr. is trained per generator train
 DB_PERCENT = 5      # percentage of the database to use
-LAMBDA = 10         # loss function param
-
+# loss function param
+LAMBDA = 10         
+number_of_disc_layers = 22
 #------------------------------------------------------------------------------
 # Hyperparameters - taken mostly from the WaveGAN arquitecture
 #------------------------------------------------------------------------------
