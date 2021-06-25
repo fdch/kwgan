@@ -97,14 +97,15 @@ def train_step(x):
 
     G_g = tape.gradient(G_loss, G.trainable_variables)
     D_g = tape.gradient(D_loss, D.trainable_variables)
-    t=0
-    for t in range(number_of_disc_layers):
+
+    for t in range(number_of_disc_layers-1):
       y = tf.clip_by_value(
-        G.trainable_weights[t],
+        G.trainable_weights[t+1],
         clip_value_min=-0.05,
         clip_value_max=0.05,
         name=None)
-      D.trainable_weights[t].assign(y)
+      D.trainable_weights[t+1].assign(y)
+    
     G_opt.apply_gradients(zip(G_g, G.trainable_variables))
     D_opt.apply_gradients(zip(D_g, D.trainable_variables))
 
