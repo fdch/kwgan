@@ -35,7 +35,7 @@ class PhaseShuffle(tf.keras.layers.Layer):
   def build(self, shape):
     ph_init = tf.random_uniform_initializer(minval=-rad, maxval=rad+1)
     self.x_len = shape[1]
-    self.phase = tf.Variable(ph_init(shape=[],dtype=tf.int32))
+    self.phase = tf.Variable(ph_init(shape=[],dtype=tf.int32),trainable=False)
     self.pad_l = tf.maximum(self.phase, 0)
     self.pad_r = tf.maximum(-self.phase, 0)
     self.phase_start = self.pad_r
@@ -100,13 +100,14 @@ def train_step(x):
 
 
     for D_layer in D.layers:
-      D_weights = D_layer.trainable_weights[0]
-      D_weights_clipped = tf.clip_by_value(
-                                    D_weights,
-                                    clip_value_min=-0.05,
-                                    clip_value_max=0.05,
-                                    name=None)
-      D_weights.assign(D_weights_clipped)
+        if D_layer.trainable_weights:    
+            D_weights = D_layer.trainable_weights[0]
+            D_weights_clipped = tf.clip_by_value(
+                                        D_weights,
+                                        clip_value_min=-0.05,
+                                        clip_value_max=0.05,
+                                        name=None)
+            D_weights.assign(D_weights_clipped)
     
     G_opt.apply_gradients(zip(G_g, G.trainable_variables))
     D_opt.apply_gradients(zip(D_g, D.trainable_variables))
@@ -128,7 +129,6 @@ D_TRAIN = 5         # Number of times discr. is trained per generator train
 DB_PERCENT = 5      # percentage of the database to use
 # loss function param
 LAMBDA = 10         
-number_of_disc_layers = 22
 #------------------------------------------------------------------------------
 # Hyperparameters - taken mostly from the WaveGAN arquitecture
 #------------------------------------------------------------------------------
