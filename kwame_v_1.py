@@ -51,8 +51,8 @@ class PhaseShuffle(tf.keras.layers.Layer):
 #------------------------------------------------------------------------------
 
 @tf.function
-def D_lossFun(x, z):
-    loss = tf.reduce_mean(D(G(z))) - tf.reduce_mean(D(x))
+def D_lossFun(x, z, training=True):
+    loss = tf.reduce_mean(D(G(z, training=training), training=training)) - tf.reduce_mean(D(x, training=training))
 
     return loss
     # epsilon = tf.random.uniform(
@@ -75,17 +75,17 @@ def D_lossFun(x, z):
 #------------------------------------------------------------------------------
 
 @tf.function
-def step(x):
+def step(x, training=True):
     z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
-    G_loss = -tf.reduce_mean(D(G(z)))
-    D_loss = D_lossFun(x, z)
+    G_loss = -tf.reduce_mean(D(G(z, training=training), training=training))
+    D_loss = D_lossFun(x, z, training=training)
     return G_loss, D_loss
 
 @tf.function
 def D_step(x):
     z = tf.random.normal([BATCH_SIZE, LATENT_DIM])
     with tf.GradientTape() as D_tape:
-        D_loss = D_lossFun(x, z)
+        D_loss = D_lossFun(x, z, training=True)
 
     D_g = D_tape.gradient(D_loss, D.trainable_variables)
     D_opt.apply_gradients(zip(D_g, D.trainable_variables))
@@ -93,7 +93,7 @@ def D_step(x):
 @tf.function
 def train_step(x):
     with tf.GradientTape(persistent=True) as tape:
-        G_loss, D_loss = step(x)
+        G_loss, D_loss = step(x, training=True)
 
     G_g = tape.gradient(G_loss, G.trainable_variables)
     D_g = tape.gradient(D_loss, D.trainable_variables)
@@ -119,14 +119,14 @@ def train_step(x):
 #------------------------------------------------------------------------------
 
 EPOCHS = 1001       # number of epochs to train model
-SAVE_INTERVAL = 100 # number of epochs to wait before saving the model
-AUDIO_EXPORTS = 5   # number of audio to export per save interval
+SAVE_INTERVAL = 10 # number of epochs to wait before saving the model
+AUDIO_EXPORTS = 1   # number of audio to export per save interval
 BATCH_SIZE = 64     # batches for training
 LATENT_DIM = 128    # Input vector for generator (short noise)
 SAMPLERATE = 16000  # Audio samplerate
 DIMS = (2**14, 1)   # Input dimensions - one sec file aprox (16384, 1)
 D_TRAIN = 5         # Number of times discr. is trained per generator train
-DB_PERCENT = 5      # percentage of the database to use
+DB_PERCENT = 10     # percentage of the database to use
 # loss function param
 LAMBDA = 10         
 #------------------------------------------------------------------------------
@@ -137,10 +137,10 @@ filt   = 64  # dimension of the convolution filters
 fmult  = 16  # filter dimension multiplier
 size   = 25  # size or length of the kernel
 strd   = 4   # strides
-moment = 0.8 # momentum for the moving avg of the batch normalization
-alpha  = 0.2 # leaky relu alpha parameter
-rad    = 2   # range for phase shuffling (-rad, rad+1)
-pad_d  = 'causal'  # padding for down (1d) convolution layers
+moment = 0.85 # momentum for the moving avg of the batch normalization
+alpha  = 0.3 # leaky relu alpha parameter
+rad    = 3   # range for phase shuffling (-rad, rad+1)
+pad_d  = 'same'  # padding for down (1d) convolution layers
 pad_u  = 'same'    # padding for up (2dtranspose) convolution layers
 pad_s  = 'reflect' # padding type for phase shuffling
 
@@ -255,6 +255,11 @@ G_opt = tf.keras.optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 D_opt = tf.keras.optimizers.Adam(learning_rate=1e-4,beta_1=0.5,beta_2=0.9)
 
 
+print(D.summary())
+print(G.summary())
+
+CHECKPOINT = tf.train.Checkpoint(G_opt=G_opt, D_opt=D_opt, G=G, D=D)
+
 #------------------------------------------------------------------------------
 # paths and filenames
 #------------------------------------------------------------------------------
@@ -319,11 +324,6 @@ DS_TEST  = DS_TEST.batch(BATCH_SIZE).cache().prefetch(AUTOTUNE)
 
 print(f"Done making datasets in {time.time()-START_TIME} seconds.")
 
-D.summary()
-G.summary()
-
-CHECKPOINT = tf.train.Checkpoint(G_opt=G_opt, D_opt=D_opt, G=G, D=D)
-
 #------------------------------------------------------------------------------
 # # set allow growth flag 
 # # issue here https://github.com/tensorflow/tensorflow/issues/36025
@@ -370,7 +370,7 @@ for epoch in range(EPOCHS):
     train_loss.append([G_loss, D_loss])
 
   for x in DS_TEST:
-    G_loss, D_loss = step(x)
+    G_loss, D_loss = step(x, training=False)
     test_loss.append([G_loss, D_loss])
   
   tr_loss = tf.reduce_mean(train_loss, axis=0).numpy()
