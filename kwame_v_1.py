@@ -5,6 +5,55 @@ import tensorflow as tf
 import scipy.io.wavfile as wav
 from pathlib import Path
 
+#------------------------------------------------------------------------------
+# useful globals
+#------------------------------------------------------------------------------
+
+EPOCHS = 10001      # number of epochs to train model
+SAVE_INTERVAL = 50  # number of epochs to wait before saving the model
+AUDIO_EXPORTS = 3   # number of audio to export per save interval
+BATCH_SIZE = 64     # batches for training
+LATENT_DIM = 128    # Input vector for generator (short noise)
+SAMPLERATE = 16000  # Audio samplerate
+DIMS = (2**14, 1)   # Input dimensions - one sec file aprox (16384, 1)
+D_TRAIN = 5         # Number of times discr. is trained per generator train
+DB_PERCENT = 100     # percentage of the database to use
+
+# loss function param
+LAMBDA = 10
+
+#------------------------------------------------------------------------------
+# Hyperparameters - taken mostly from the WaveGAN arquitecture
+#------------------------------------------------------------------------------
+
+filt   = 64  # dimension of the convolution filters
+fmult  = 16  # filter dimension multiplier
+size   = 25  # size or length of the kernel
+strd   = 4   # strides
+moment = 0.85 # momentum for the moving avg of the batch normalization
+alpha  = 0.3 # leaky relu alpha parameter
+rad    = 3   # range for phase shuffling (-rad, rad+1)
+pad_d  = 'same'  # padding for down (1d) convolution layers
+pad_u  = 'same'    # padding for up (2dtranspose) convolution layers
+pad_s  = 'reflect' # padding type for phase shuffling
+
+# clip values for wasserstein loss
+clip_value_min = -0.01
+clip_value_max = 0.01
+
+# parameters for the generator's relu activation
+relu = {
+  "max": None, 
+  "slope":0,
+  "thresh":0
+}
+# generator's last conv layer activation
+G_act = tf.keras.activations.tanh
+
+if 4 * 4 * filt * fmult != DIMS[0]:
+  print("Warning, wrong dims.")
+
+
 def decode_audio(audio_binary, file_path):
     audio, sr = tf.audio.decode_wav(audio_binary)
     if sr != SAMPLERATE:
@@ -104,8 +153,8 @@ def train_step(x):
             D_weights = D_layer.trainable_weights[0]
             D_weights_clipped = tf.clip_by_value(
                                         D_weights,
-                                        clip_value_min=-0.05,
-                                        clip_value_max=0.05,
+                                        clip_value_min=clip_value_min,
+                                        clip_value_max=clip_value_max,
                                         name=None)
             D_weights.assign(D_weights_clipped)
     
@@ -114,47 +163,6 @@ def train_step(x):
 
     return G_loss, D_loss
 
-#------------------------------------------------------------------------------
-# useful globals
-#------------------------------------------------------------------------------
-
-EPOCHS = 1001       # number of epochs to train model
-SAVE_INTERVAL = 10 # number of epochs to wait before saving the model
-AUDIO_EXPORTS = 1   # number of audio to export per save interval
-BATCH_SIZE = 64     # batches for training
-LATENT_DIM = 128    # Input vector for generator (short noise)
-SAMPLERATE = 16000  # Audio samplerate
-DIMS = (2**14, 1)   # Input dimensions - one sec file aprox (16384, 1)
-D_TRAIN = 5         # Number of times discr. is trained per generator train
-DB_PERCENT = 10     # percentage of the database to use
-# loss function param
-LAMBDA = 10         
-#------------------------------------------------------------------------------
-# Hyperparameters - taken mostly from the WaveGAN arquitecture
-#------------------------------------------------------------------------------
-
-filt   = 64  # dimension of the convolution filters
-fmult  = 16  # filter dimension multiplier
-size   = 25  # size or length of the kernel
-strd   = 4   # strides
-moment = 0.85 # momentum for the moving avg of the batch normalization
-alpha  = 0.3 # leaky relu alpha parameter
-rad    = 3   # range for phase shuffling (-rad, rad+1)
-pad_d  = 'same'  # padding for down (1d) convolution layers
-pad_u  = 'same'    # padding for up (2dtranspose) convolution layers
-pad_s  = 'reflect' # padding type for phase shuffling
-
-# parameters for the generator's relu activation
-relu = {
-  "max": None, 
-  "slope":0,
-  "thresh":0
-}
-# generator's last conv layer activation
-G_act = tf.keras.activations.tanh
-
-if 4 * 4 * filt * fmult != DIMS[0]:
-  print("Warning, wrong dims.")
 
 #------------------------------------------------------------------------------
 # Generator model
@@ -298,8 +306,8 @@ START_TIME = time.time()
 train_files = [ i.as_posix() for i in PATH_TRAIN.glob("*.wav") ]
 test_files  = [ i.as_posix() for i in PATH_TEST.glob("*.wav") ]
 
-train_files = train_files[:len(train_files) // 100 * DB_PERCENT]
-test_files  = test_files[:len(test_files)   // 100 * DB_PERCENT]
+train_files = train_files[:len(train_files) * DB_PERCENT // 100 ]
+test_files  = test_files[:len(test_files)   * DB_PERCENT // 100 ]
 
 print(f"Using {len(train_files)} files for training: {PATH_TRAIN.as_posix()}")
 print(f"Using {len(test_files) } files for validation:{PATH_TEST.as_posix()}")
